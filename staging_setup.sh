@@ -5,8 +5,10 @@ set -e
 cd "$(dirname $0)"
 
 USERNAME="$(whoami)"
+GROUP="$(id -ng)"
 ROLE="build"
-BASEDIR="/builds/buildbot/$USERNAME/staging" 
+BASEDIR="/builds/buildbot/$USERNAME/staging"
+MASTER_DIR="$BASEDIR/master"
 
 if [ -e "$BASEDIR" ]
 then
@@ -16,8 +18,8 @@ then
 fi
 
 
-TMP_DIR="$(mktemp -d XXXXXXXX)"
-
+TMP_DIR="$(mktemp -d -t XXXXXXXX)"
+trap "rm -f afile" EXIT
 cd "$TMP_DIR"
 #====================#
 # finding free ports #
@@ -42,8 +44,8 @@ function port_suffix {
         PB_PORT=$(pb_port $portsuffix)
         if (! nc -z 127.0.0.1 $SSH_PORT || \
             ! nc -z 127.0.0.1 $HTTP_PORT || \
-            ! nc -z 127.0.0.1 $PB_PORT)>/dev/null 
-        then 
+            ! nc -z 127.0.0.1 $PB_PORT)>/dev/null
+        then
             echo $portsuffix
             break
         fi
@@ -58,9 +60,11 @@ PB_PORT=$(pb_port $portsuffix)
 #===============#
 # create master #
 #===============#
-hg clone http://hg.mozilla.org/build/buildbot-configs
+echo "* cloning buildbot-configs repository"
+hg clone http://hg.mozilla.org/build/buildbot-configs > /dev/null 2>&1
 cd buildbot-configs
 
+echo "* running make -f Makefile.setup"
 make -f Makefile.setup \
 USE_DEV_MASTER=1 \
 MASTER_NAME="$USERNAME" \
@@ -71,6 +75,21 @@ BUILDBOTCUSTOM_BRANCH=default \
 BUILDBOTCONFIGS_BRANCH=default \
 USER="$USERNAME" \
 HTTP_PORT="$HTTP_PORT" PB_PORT="$PB_PORT" SSH_PORT="$SSH_PORT" ROLE="$ROLE" \
-virtualenv deps install-buildbot master master-makefile
+virtualenv deps install-buildbot master master-makefile > /dev/null 2>&1
 
 rm -rf "$TMP_DIR"
+
+echo "* using universal master sqlite configruation file"
+ln -s "$BASEDIR/buildbot-configs/mozilla/universal_master_sqlite.cfg" "$MASTER_DIR/master.cfg"
+
+if [ -e "$HOME/passwords.py" ]
+then
+    cp "$HOME/passwords.py" "$MASTER_DIR"
+else
+    echo "NOTE: You may need to populate master/passwords.py so the download_token step doesn't fail."
+fi
+
+echo "NOTE: Add branches of interest to master/master_config.json limit_branches, release_branches, etc."
+
+make checkconfig
+make start || grep 'configuration update complete' master/twistd.log || exit 64
