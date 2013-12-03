@@ -3,7 +3,7 @@
 #https://wiki.mozilla.org/ReleaseEngineering/How_To/Setup_Personal_Development_Master#Create_a_build_master
 set -e
 cd "$(dirname $0)"
-
+CURRENT_DIR="$(pwd)"
 USERNAME="$(whoami)"
 GROUP="$(id -ng)"
 ROLE="build"
@@ -22,7 +22,7 @@ fi
 
 
 TMP_DIR="$(mktemp -d -t XXXXXXXX)"
-trap "rm -f afile" EXIT
+trap "rm -f $TMP_DIR" EXIT
 cd "$TMP_DIR"
 #====================#
 # finding free ports #
@@ -54,6 +54,18 @@ function port_suffix {
         fi
     done
 }
+
+function detokenize {
+    SRC_FILE=$1
+(
+IFS=
+while read -r TOKEN_LINE
+do
+    eval "echo \"$(echo "$TOKEN_LINE" | sed 's/\\/\\\\/g;s/\"/\\\"/g;s/\$[^{(]/\\&/g')\""
+done < "$SRC_FILE"
+)
+
+}
 #### end ####
 portsuffix=$(port_suffix)
 SSH_PORT=$(ssh_port $portsuffix)
@@ -81,6 +93,10 @@ HTTP_PORT="$HTTP_PORT" PB_PORT="$PB_PORT" SSH_PORT="$SSH_PORT" ROLE="$ROLE" \
 virtualenv deps install-buildbot master master-makefile > /dev/null 2>&1
 cd "$BASEDIR"
 rm -rf "$TMP_DIR"
+
+echo "* creating master_config.json"
+CONFIG_JSON="$CURRENT_DIR/staging_config.json"
+(detokenize "$CONFIG_JSON") > "$MASTER_DIR/master_config.json"
 
 echo "* using universal master sqlite configruation file"
 rm -rf "$MASTER_DIR/master.cfg"
