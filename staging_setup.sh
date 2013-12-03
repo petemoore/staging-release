@@ -106,9 +106,9 @@ if [ -e "$HOME/passwords.py" ]
 then
     cp "$HOME/passwords.py" "$MASTER_DIR"
 else
-    echo "NOTE: You may need to populate master/passwords.py so the download_token step doesn't fail."
+    echo "* NOTE: You may need to populate master/passwords.py so the download_token step doesn't fail."
 fi
-echo "NOTE: Add branches of interest to master/master_config.json limit_branches, release_branches, etc."
+echo "* NOTE: Add branches of interest to master/master_config.json limit_branches, release_branches, etc."
 make checkconfig
 make start || grep 'configuration update complete' master/twistd.log || exit 64
 echo "buildbot master: http://dev-master01.build.scl1.mozilla.com:$HTTP_PORT/"
