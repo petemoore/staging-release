@@ -10,6 +10,9 @@ ROLE="build"
 BASEDIR="/builds/buildbot/$USERNAME/staging"
 MASTER_DIR="$BASEDIR/master"
 
+echo ""
+echo "Setting up a new build master for staging releases"
+echo "=================================================="
 if [ -e "$BASEDIR" ]
 then
     echo "$BASEDIR already exists: terminating"
@@ -80,6 +83,7 @@ virtualenv deps install-buildbot master master-makefile > /dev/null 2>&1
 rm -rf "$TMP_DIR"
 
 echo "* using universal master sqlite configruation file"
+rm -rf "$MASTER_DIR/master.cfg"
 ln -s "$BASEDIR/buildbot-configs/mozilla/universal_master_sqlite.cfg" "$MASTER_DIR/master.cfg"
 
 if [ -e "$HOME/passwords.py" ]
@@ -93,3 +97,5 @@ echo "NOTE: Add branches of interest to master/master_config.json limit_branches
 
 make checkconfig
 make start || grep 'configuration update complete' master/twistd.log || exit 64
+
+echo "buildbot master: http://dev-master01.build.scl1.mozilla.com:$HTTP_PORT/"
