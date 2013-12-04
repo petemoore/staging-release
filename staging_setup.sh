@@ -75,6 +75,10 @@ PB_PORT=$(pb_port $portsuffix)
 #===============#
 # create master #
 #===============#
+echo "* creating: "
+echo "  buildbot master: http://dev-master01.build.scl1.mozilla.com:$HTTP_PORT/"
+echo "         ssh port: $SSH_PORT"
+echo "          pb port: $PB_PORT"
 echo "* cloning buildbot-configs repository"
 hg clone http://hg.mozilla.org/build/buildbot-configs > /dev/null 2>&1
 cd buildbot-configs
@@ -93,7 +97,6 @@ HTTP_PORT="$HTTP_PORT" PB_PORT="$PB_PORT" SSH_PORT="$SSH_PORT" ROLE="$ROLE" \
 virtualenv deps install-buildbot master master-makefile > /dev/null 2>&1
 cd "$BASEDIR"
 rm -rf "$TMP_DIR"
-
 echo "* creating master_config.json"
 CONFIG_JSON="$CURRENT_DIR/staging_config.json"
 (detokenize "$CONFIG_JSON") > "$MASTER_DIR/master_config.json"
@@ -109,7 +112,16 @@ else
     echo "* NOTE: You may need to populate master/passwords.py so the download_token step doesn't fail."
 fi
 echo "* NOTE: Add branches of interest to master/master_config.json limit_branches, release_branches, etc."
-make checkconfig
-set +e
-make start || grep 'configuration update complete' master/twistd.log || exit 64
+echo "* executing make checkingconfig"
+
+TMP_FILE="$(mktemp -t XXXXXXXX)"
+if (make checkconfig > "$TMP_FILE" 2>&1)
+then
+    echo "* configuration looks good"
+else
+    echo "* ERROR: make checkconfig failed with the following error:"
+    cat "$TMP_FILE"
+    rm -rf "$TMP_FILE"
+fi
+
 echo "buildbot master: http://dev-master01.build.scl1.mozilla.com:$HTTP_PORT/"
