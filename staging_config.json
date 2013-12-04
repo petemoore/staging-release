@@ -1,4 +1,4 @@
-[{
+{
   "basedir": "${BASEDIR}",
   "bbconfigs_branch": "default",
   "bbconfigs_dir": "${BASEDIR}/buildbot-configs",
@@ -29,4 +29,4 @@
   "thunderbird_release_branches": [],
   "tools_branch": "default",
   "tools_dir": "${BASEDIR}/tools"
-}]
+}
