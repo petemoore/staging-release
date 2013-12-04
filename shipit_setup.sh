@@ -56,7 +56,7 @@ function port_suffix {
 port_suffix=$(port_suffix)
 SHIPIT_PORT="$(shipit_port $port_suffix)"
 echo "#!/bin/bash" > "$SHIPIT_DIR/start_shipit.sh"
-echo 'cd $(dirname$0)' >> "$SHIPIT_DIR/start_shipit.sh"
+echo 'cd $(dirname $0)' >> "$SHIPIT_DIR/start_shipit.sh"
 echo "echo '* http://dev-master01.build.scl1.mozilla.com:$SHIPIT_PORT/'" >> "$SHIPIT_DIR/start_shipit.sh"
 echo "echo '* user: $SHIPIT_USER'" >> "$SHIPIT_DIR/start_shipit.sh"
 echo "echo '* password: $PASSWORD'" >> "$SHIPIT_DIR/start_shipit.sh"
