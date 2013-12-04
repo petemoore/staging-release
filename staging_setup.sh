@@ -16,7 +16,7 @@ echo "=================================================="
 if [ -e "$BASEDIR" ]
 then
     echo "$BASEDIR already exists: terminating"
-    echo "backup and remove your $BASEDIR if you want to run this script"
+    echo "stop, backup and remove your $BASEDIR if you want to run this script"
     exit 0
 fi
 
@@ -110,5 +110,6 @@ else
 fi
 echo "* NOTE: Add branches of interest to master/master_config.json limit_branches, release_branches, etc."
 make checkconfig
+set +e
 make start || grep 'configuration update complete' master/twistd.log || exit 64
 echo "buildbot master: http://dev-master01.build.scl1.mozilla.com:$HTTP_PORT/"
