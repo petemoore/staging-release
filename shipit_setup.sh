@@ -25,12 +25,12 @@ fi
 
 echo "* cloning ship it from github"
 cd "$BASEDIR"
-git clone https://git.mozilla.org/build/release-kickoff.git
+git clone https://git.mozilla.org/build/release-kickoff.git > /dev/null 2>&1
 cd release-kickoff
 echo "* creating virtualenv"
-virtualenv-2.6 venv
+virtualenv-2.6 venv > /dev/null 2>&1
 echo "* installing required packages"
-venv/bin/pip install -r requirements/dev.txt
+venv/bin/pip install -r requirements/dev.txt > /dev/null 2>&1
 
 #====================#
 # finding free ports #
