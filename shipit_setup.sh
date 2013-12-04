@@ -62,7 +62,7 @@ echo "* user: $SHIPIT_USER"
 echo "* password: $PASSWORD"
 venv/bin/python kickoff-web.py -d sqlite:///kickoff.db -u "$SHIPIT_USER" -p "$PASSWORD" --host=0.0.0.0 --port="$SHIPIT_PORT"
 EOF
-
+chmod u+x "$SHIPIT_DIR/start_shipit.sh"
 echo "to start shipit, run: $SHIPIT_DIR/start_shipit.sh"
 echo "* http://dev-master01.build.scl1.mozilla.com:$SHIPIT_PORT/"
 echo "* user: $SHIPIT_USER"
