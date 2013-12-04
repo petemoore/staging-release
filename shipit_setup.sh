@@ -53,6 +53,7 @@ function port_suffix {
     done
 }
 
+port_suffix=$(port_suffix)
 SHIPIT_PORT="$(shipit_port $port_suffix)"
 cat <<'EOF' > "$SHIPIT_DIR/start_shipit.sh"
 #!/bin/bash
