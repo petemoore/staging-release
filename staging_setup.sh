@@ -125,3 +125,12 @@ else
 fi
 
 echo "buildbot master: http://dev-master01.build.scl1.mozilla.com:$HTTP_PORT/"
+
+echo "* installing release runner"
+cd "$BASEDIR"
+hg clone "http://hg.mozilla.org/users/$USERNAME_mozilla.com/tools"
+cd tools/buildfarm/release
+virtualenv-2.6 venv
+venv/bin/pip install buildbot fabric simplejson
+
+PATH=$PATH:venv/bin venv/bin/python release-runner.py -c /path/to/your/release-runner.ini
