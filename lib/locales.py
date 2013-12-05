@@ -18,15 +18,18 @@ def get_shipped_locales(locales_url):
     locales = []
     try:
         data = urllib2.urlopen(locales_url)
-    except urllib2.HTTPError as e:
-        msg = 'HTTPError = {0}\n'.format(str(e.code))
+    except urllib2.HTTPError as error:
+        msg = 'HTTPError = {0}\n'.format(str(error.code))
         msg = '{0}url: {1}'.format(locales_url)
         raise NoLocalesError(msg)
-    except urllib2.URLError as e:
-        msg = 'URLError = {0}'.format(e.reason)
+    except urllib2.URLError as error:
+        msg = 'URLError = {0}'.format(error.reason)
         msg = '{0}url: {1}'.format(locales_url)
         raise NoLocalesError(msg)
     for line in data:
-        locales.append(line.strip())
-    # removing empty lines
-    return tuple([locale for locale in locales if locale is not None])
+        line = line.strip()
+        # removing empty lines and line = en-US
+        if line and line != 'en-US':
+            locales.append(line.strip())
+
+    return tuple(locales)
