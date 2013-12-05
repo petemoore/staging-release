@@ -5,7 +5,7 @@ are already in use or it's free
 import socket
 
 
-def in_used(port):
+def in_use(port):
     """ checks if given port is in use."""
     is_open = False
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -22,7 +22,6 @@ def used_in_range(from_port, to_port):
     in_use = set()
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     for port in xrange(from_port, to_port):
-        print port
         if sock.connect_ex(('127.0.0.1', port)) == 0:
             in_use.add(port)
     sock.close()
@@ -34,7 +33,6 @@ def available_in_range(from_port, to_port):
     are_free = set()
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     for port in xrange(from_port, to_port):
-        print port
         if not sock.connect_ex(('127.0.0.1', port)) == 0:
             are_free.add(port)
     return are_free
