@@ -2,11 +2,13 @@
 
 #https://wiki.mozilla.org/ReleaseEngineering/How_To/Setup_Personal_Development_Master#Create_a_build_master
 import os
+import sys
 import tempfile
 import shutil
 from lib.config import Config
 from sh import hg
 from sh import make
+from sh import ls
 import lib.logger
 import logging
 
@@ -19,6 +21,7 @@ if __name__ == '__main__':
     config_ini = os.path.join(os.path.dirname(__file__), "config.ini")
     config.read_from(config_ini)
     tmp_dir = tempfile.mkdtemp()
+    log.debug('tmp_dir: {0}'.format(tmp_dir))
     hg_cmd = ('clone', 'http://hg.mozilla.org/build/buildbot-configs', tmp_dir)
     for line in hg(hg_cmd, _iter=True):
         log.debug(line.strip())
@@ -28,9 +31,16 @@ if __name__ == '__main__':
     ssh_port = config.get('master', 'ssh_port')
     pb_port = config.get('master', 'pb_port')
     role = config.get('master', 'role')
+    virtualenv = config.get('master', 'virtualenv')
 
-    # just for now
-    basedir = os.path.join('/tmp/test')
+    if os.path.exists(basedir):
+        log.error('{0} already exists. Terminating'.format(basedir))
+        sys.exit(1)
+
+    # creating basedir
+    os.makedirs(basedir)
+
+    # make
     make_cmd = ['-f', 'Makefile.setup']
     make_cmd += ['USE_DEV_MASTER=1']
     make_cmd += ['MASTER_NAME={0}'.format(username)]
@@ -44,7 +54,11 @@ if __name__ == '__main__':
     make_cmd += ['PB_PORT={0}'.format(pb_port)]
     make_cmd += ['SSH_PORT={0}'.format(ssh_port)]
     make_cmd += ['ROLE={0}'.format(role)]
-    make_cmd += ['virtualenv', 'deps', 'install-buildbot']
+    make_cmd += [virtualenv, 'deps', 'install-buildbot']
     make_cmd += ['master', 'master-makefile']
-    make(make_cmd, _cwd=tmp_dir, _iter=True)
+    make_cwd = os.path.join(tmp_dir)
+    ls(make_cwd)
+
+    for line in make(make_cmd, _cwd=make_cwd, _iter=True):
+        log.debug(line.strip())
     shutil.rmtree(tmp_dir)
