@@ -57,7 +57,8 @@ if __name__ == '__main__':
     make_cmd += [virtualenv, 'deps', 'install-buildbot']
     make_cmd += ['master', 'master-makefile']
     make_cwd = os.path.join(tmp_dir)
-    log.debug(ls(make_cwd))
+    for line in ls(make_cwd, _iter=True):
+        log.debug(line.strip())
 
     for line in make(make_cmd, _cwd=make_cwd, _iter=True):
         log.debug(line.strip())
