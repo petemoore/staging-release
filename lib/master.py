@@ -4,8 +4,10 @@ import tempfile
 import shutil
 from sh import hg
 from sh import make
-import lib.logger
+import logger
 import logging
+
+log = logging.getLogger(__name__)
 
 
 class MasterError(Exception):
@@ -45,7 +47,7 @@ class Master(object):
             raise MasterError(msg)
 
     def _clone_builbot_configs(self, target_dir):
-        log.info('cloning {0}'.format(self.buildbot_configs_repo)
+        log.info('cloning {0}'.format(self.buildbot_configs_repo))
         hg_cmd = ('clone', self.buildbot_configs_repo, target_dir)
         for line in hg(hg_cmd, _iter=True):
             log.debug(line.strip())
@@ -70,21 +72,3 @@ class Master(object):
 
         for line in make(make_cmd, _cwd=cwd, _iter=True):
             log.debug(line.strip())
-
-
-if __name__ == '__main__':
-
-    log = logging.getLogger('staging release')
-    # reading configuration
-    config = Config()
-    config_ini = os.path.join(os.path.dirname(__file__), "config.ini")
-    config.read_from(config_ini)
-    master = Master(config)
-    try:
-        master.install()
-    except MasterError as error:
-        msg = 'master creation failed with the following error: {0}'.format(error)
-        log.error(msg)
-
-
-
