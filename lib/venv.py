@@ -46,9 +46,9 @@ class Virtualenv(object):
         cmd = (self._executable(), self.install_directory)
         log.info('creating virtualenv')
         venv = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE)
-        while 1:
+        while True:
             log.debug(venv.stdout.readline())
-            if venv.poll() is None:
+            if venv.poll() is not None:
                 break
 
         self.basedir = dst_dir
@@ -58,7 +58,7 @@ class Virtualenv(object):
         cmd = (pip_path, 'install', '-r', requirements_file)
         log.info('installing required packages')
         pip = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE)
-        while 1:
+        while True:
             log.debug(pip.stdout.readline())
-            if pip.poll() is None:
+            if pip.poll() is not None:
                 break
