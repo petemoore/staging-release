@@ -53,7 +53,7 @@ class Virtualenv(object):
 
         self.basedir = dst_dir
         conf = self.configuration
-        pip_path = conf.get('shipit', 'pip')
+        pip_path = conf.get('virtualenv', 'pip')
         pip_path = os.path.join(self.basedir, pip_path)
         cmd = (pip_path, 'install', '-r', requirements_file)
         log.info('installing required packages')
