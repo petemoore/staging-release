@@ -23,17 +23,22 @@ class Shipit(object):
         req = configuration.get('shipit', 'requirements')
         self.requirements = os.path.join(self.basedir, req)
         self.configuration = configuration
+        self.activate_path = None
+        self.python_path = None
 
     def install(self):
         """installs buildbot master"""
         self._clone(self.basedir)
         self.create_virtualenv()
+        self._create_startup_file()
 
     def create_virtualenv(self):
         """creates a virtualenv for ship it
            and install all the required packages
         """
         venv = Virtualenv(self.configuration)
+        self.activate_path = venv.activate_path
+        self.python_path = venv.python_path
         try:
             venv.create(self.basedir, self.requirements)
         except VirtualenvError as error:
@@ -49,7 +54,12 @@ class Shipit(object):
             log.debug(line.strip())
 
     def _create_startup_file(self):
-        pass
+        startup = self.configuration.get('shipit', 'startup')
+        startup_path = self.configuration.get('shipit', 'startup_path')
+        with open(startup_path) as strt:
+            strt.write('#!/bin/bash\n\n')
+            strt.write('source {0}\n'.format(self.activate_path))
+            strt.write("{0} {1}\n".format(self.python_path, startup))
 
     def start(self):
         """starts a ship it instance"""
