@@ -113,3 +113,12 @@ class Config(ConfigParser.SafeConfigParser):
         # giving up
         msg = "no available ports for your staging master. Giving up"
         raise ConfigError(msg)
+
+
+    def __str__(self):
+        msg = ""
+        for section in self.sections():
+            msg = "{0}[{1}]\n".format(msg, section)
+            for option in self.options(section):
+                msg = "{0}{1}={2}\n".format(msg, option, self.get(section, option))
+        return msg
