@@ -14,13 +14,14 @@ class VirtualenvError(Exception):
 class Virtualenv(object):
     """Virtualenv class, creates a virtualenv"""
     def __init__(self, configuration):
-        self.binaries = configuration.get('virtualenv', 'binaries').split(',')
+        self.basedir = None
         self.executable = None
+        self.configuration = configuration
+        self.binaries = configuration.get('virtualenv', 'binaries').split(',')
+        self.python_path = configuration.get('virtualenv', 'python_path')
         self.activate_path = configuration.get('virtualenv', 'activate_path')
         self.install_directory = configuration.get('virtualenv',
                                                    'install_directory')
-        self.basedir = None
-        self.configuration = configuration
 
     def _executable(self):
         """returns the virtualenv excutable"""
