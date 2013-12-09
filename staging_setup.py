@@ -13,6 +13,63 @@ import lib.logger
 import logging
 
 
+class MasterError(Exception):
+    pass
+
+
+class Master(object):
+    def __init__(self, configuration):
+        self.username = configuration.get('DEFAULT', 'username')
+        self.basedir = configuration.get('master', 'basedir')
+        self.http_port = configuration.get('master', 'http_port')
+        self.ssh_port = configuration.get('master', 'ssh_port')
+        self.pb_port = configuration.get('master', 'pb_port')
+        self.role = configuration.get('master', 'role')
+        self.virtualenv = configuration.get('master', 'virtualenv')
+
+    def install(self):
+        self._prepare_dirs()
+        tmp_dir = tempfile.mkdtemp()
+        log.info('tmp_dir: {0}'.format(tmp_dir))
+        self._clone_builbot_configs(tmp_dir)
+        self._make(tmp_dir)
+        shutil.rmtree(tmp_dir)
+
+    def _prepare_dirs(self):
+        try:
+            os.makedirs(self.basedir)
+        except OSError as error:
+            msg = 'Cannot create: {0} ({1})'.format(self.basedir, error)
+            raise MasterError(msg)
+
+    def _clone_builbot_configs(self, target_dir):
+        log.info('cloning http://hg.mozilla.org/build/buildbot-configs')
+        hg_cmd = ('clone', 'http://hg.mozilla.org/build/buildbot-configs', target_dir)
+        for line in hg(hg_cmd, _iter=True):
+            log.debug(line.strip())
+
+    def _make(self, cwd):
+        log.info('creating master in {0}'.format(self.basedir))
+        make_cmd = ['-f', 'Makefile.setup']
+        make_cmd += ['USE_DEV_MASTER=1']
+        make_cmd += ['MASTER_NAME={0}'.format(self.username)]
+        make_cmd += ['BASEDIR={0}'.format(self.basedir)]
+        make_cmd += ['PYTHON=python2.6']
+        make_cmd += ['VIRTUALENV=virtualenv-2.6']
+        make_cmd += ['BUILDBOTCUSTOM_BRANCH=default']
+        make_cmd += ['BUILDBOTCONFIGS_BRANCH=default']
+        make_cmd += ['USER={0}'.format(self.username)]
+        make_cmd += ['HTTP_PORT={0}'.format(self.http_port)]
+        make_cmd += ['PB_PORT={0}'.format(self.pb_port)]
+        make_cmd += ['SSH_PORT={0}'.format(self.ssh_port)]
+        make_cmd += ['ROLE={0}'.format(self.role)]
+        make_cmd += [self.virtualenv, 'deps', 'install-buildbot']
+        make_cmd += ['master', 'master-makefile']
+
+        for line in make(make_cmd, _cwd=cwd, _iter=True):
+            log.debug(line.strip())
+
+
 if __name__ == '__main__':
 
     log = logging.getLogger('staging release')
@@ -20,46 +77,12 @@ if __name__ == '__main__':
     config = Config()
     config_ini = os.path.join(os.path.dirname(__file__), "config.ini")
     config.read_from(config_ini)
-    tmp_dir = tempfile.mkdtemp()
-    log.debug('tmp_dir: {0}'.format(tmp_dir))
-    hg_cmd = ('clone', 'http://hg.mozilla.org/build/buildbot-configs', tmp_dir)
-    for line in hg(hg_cmd, _iter=True):
-        log.debug(line.strip())
-    username = config.get('DEFAULT', 'username')
-    basedir = config.get('master', 'basedir')
-    http_port = config.get('master', 'http_port')
-    ssh_port = config.get('master', 'ssh_port')
-    pb_port = config.get('master', 'pb_port')
-    role = config.get('master', 'role')
-    virtualenv = config.get('master', 'virtualenv')
+    master = Master(config)
+    try:
+        master.install()
+    except MasterError as error:
+        msg = 'master creation failed with the following error: {0}'.format(error)
+        log.error(msg)
 
-    if os.path.exists(basedir):
-        log.error('{0} already exists. Terminating'.format(basedir))
-        sys.exit(1)
 
-    # creating basedir
-    os.makedirs(basedir)
 
-    # make
-    make_cmd = ['-f', 'Makefile.setup']
-    make_cmd += ['USE_DEV_MASTER=1']
-    make_cmd += ['MASTER_NAME={0}'.format(username)]
-    make_cmd += ['BASEDIR={0}'.format(basedir)]
-    make_cmd += ['PYTHON=python2.6']
-    make_cmd += ['VIRTUALENV=virtualenv-2.6']
-    make_cmd += ['BUILDBOTCUSTOM_BRANCH=default']
-    make_cmd += ['BUILDBOTCONFIGS_BRANCH=default']
-    make_cmd += ['USER={0}'.format(username)]
-    make_cmd += ['HTTP_PORT={0}'.format(http_port)]
-    make_cmd += ['PB_PORT={0}'.format(pb_port)]
-    make_cmd += ['SSH_PORT={0}'.format(ssh_port)]
-    make_cmd += ['ROLE={0}'.format(role)]
-    make_cmd += [virtualenv, 'deps', 'install-buildbot']
-    make_cmd += ['master', 'master-makefile']
-    make_cwd = os.path.join(tmp_dir)
-    for line in ls(make_cwd, _iter=True):
-        log.debug(line.strip())
-
-    for line in make(make_cmd, _cwd=make_cwd, _iter=True):
-        log.debug(line.strip())
-    shutil.rmtree(tmp_dir)
