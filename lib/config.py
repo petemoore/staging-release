@@ -8,6 +8,7 @@ import random
 import string
 import logging
 import lib.ports as ports
+import lib.logger
 
 log = logging.getLogger(__name__)
 

@@ -4,6 +4,7 @@ import tempfile
 import shutil
 from sh import hg
 from sh import make
+import lib.logger
 import logging
 
 log = logging.getLogger(__name__)
