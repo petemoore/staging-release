@@ -20,6 +20,7 @@ class Virtualenv(object):
         self.install_directory = configuration.get('virtualenv',
                                                    'install_directory')
         self.basedir = None
+        self.configuration = configuration
 
     def _executable(self):
         """returns the virtualenv excutable"""
