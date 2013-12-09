@@ -4,11 +4,11 @@ this module manages the configuration
 import ConfigParser
 import os
 import pwd
-import ports
 import random
 import string
-import logger
 import logging
+import lib.logger as logger
+import lib.ports as ports
 
 log = logging.getLogger(__name__)
 
@@ -114,11 +114,11 @@ class Config(ConfigParser.SafeConfigParser):
         msg = "no available ports for your staging master. Giving up"
         raise ConfigError(msg)
 
-
     def __str__(self):
         msg = ""
         for section in self.sections():
             msg = "{0}[{1}]\n".format(msg, section)
             for option in self.options(section):
-                msg = "{0}{1}={2}\n".format(msg, option, self.get(section, option))
+                msg = "{0}{1}={2}\n".format(msg, option,
+                                            self.get(section, option))
         return msg
