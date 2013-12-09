@@ -4,13 +4,13 @@ import tempfile
 import shutil
 from sh import hg
 from sh import make
-import logger
 import logging
 
 log = logging.getLogger(__name__)
 
 
 class MasterError(Exception):
+    """Generic Master error"""
     pass
 
 
@@ -23,8 +23,8 @@ class Master(object):
         self.ssh_port = configuration.get('master', 'ssh_port')
         self.pb_port = configuration.get('master', 'pb_port')
         self.role = configuration.get('master', 'role')
-        self.virtualenv = configuration.get('master', 'virtualenv')
-        self.buildbot_configs_repo = configuration.get('master', 'buildbot_configs_repo')
+        self.buildbot_configs_repo = configuration.get('master',
+                                                       'buildbot_configs_repo')
 
     def install(self):
         """installs buildbot master"""
@@ -39,7 +39,7 @@ class Master(object):
         """creates required directories
            rises a MasterError if directories are already in place."""
         # If a directory already exists, probably, this script
-        # probaly this script has been executed    
+        # probaly this script has been executed
         try:
             os.makedirs(self.basedir)
         except OSError as error:
@@ -47,12 +47,14 @@ class Master(object):
             raise MasterError(msg)
 
     def _clone_builbot_configs(self, target_dir):
+        """clones buildbot-configs into target_dir"""
         log.info('cloning {0}'.format(self.buildbot_configs_repo))
         hg_cmd = ('clone', self.buildbot_configs_repo, target_dir)
         for line in hg(hg_cmd, _iter=True):
             log.debug(line.strip())
 
     def _make(self, cwd):
+        """calls make to create a buildbot master"""
         log.info('creating master in {0}'.format(self.basedir))
         make_cmd = ['-f', 'Makefile.setup']
         make_cmd += ['USE_DEV_MASTER=1']
@@ -67,8 +69,20 @@ class Master(object):
         make_cmd += ['PB_PORT={0}'.format(self.pb_port)]
         make_cmd += ['SSH_PORT={0}'.format(self.ssh_port)]
         make_cmd += ['ROLE={0}'.format(self.role)]
-        make_cmd += [self.virtualenv, 'deps', 'install-buildbot']
+        make_cmd += ['virtualenv', 'deps', 'install-buildbot']
         make_cmd += ['master', 'master-makefile']
 
         for line in make(make_cmd, _cwd=cwd, _iter=True):
             log.debug(line.strip())
+
+    def start(self):
+        """starts a master instance"""
+        make('start', _cwd=self.basedir)
+
+    def stop(self):
+        """stops a master instance"""
+        make('stops', _cwd=self.basedir)
+
+    def checkconfig(self):
+        """checks master configuration"""
+        make('checkconfig', _cwd=self.basedir)
