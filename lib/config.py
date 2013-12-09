@@ -7,7 +7,6 @@ import pwd
 import random
 import string
 import logging
-import lib.logger as logger
 import lib.ports as ports
 
 log = logging.getLogger(__name__)
