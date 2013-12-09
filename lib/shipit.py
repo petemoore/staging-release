@@ -4,6 +4,7 @@ from lib.venv import Virtualenv, VirtualenvError
 from sh import git
 import lib.logger
 import logging
+import stat
 
 log = logging.getLogger(__name__)
 
@@ -56,10 +57,19 @@ class Shipit(object):
     def _create_startup_file(self):
         startup = self.configuration.get('shipit', 'startup')
         startup_path = self.configuration.get('shipit', 'startup_path')
+        log.info('writing ship it startup file')
         with open(startup_path, 'w') as startup_script:
             startup_script.write('#!/bin/bash\n\n')
             startup_script.write('source {0}\n'.format(self.activate_path))
             startup_script.write("{0} {1}\n".format(self.python_path, startup))
+
+        # log the new file
+        with open(startup_path, 'r') as startup_script:
+            log.debug(startup_script)
+
+        # make it executable (the hard way)
+        st = os.stat(startup_path)
+        os.chmod(startup_path, st.st_mode | stat.S_IEXEC)
 
     def start(self):
         """starts a ship it instance"""
