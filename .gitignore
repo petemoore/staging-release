@@ -1,5 +1,5 @@
 *.swp
 *.pyc
 .ropeproject/
-*.log
+log/*.log
 venv/
