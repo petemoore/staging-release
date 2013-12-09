@@ -4,7 +4,7 @@
 import os
 from lib.config import Config
 from lib.master import Master, MasterError
-from lib.master import Shipit, ShipitError
+from lib.shipit import Shipit, ShipitError
 import lib.logger
 import logging
 import argparse
