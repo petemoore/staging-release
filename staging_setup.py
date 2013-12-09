@@ -3,8 +3,8 @@
 #https://wiki.mozilla.org/ReleaseEngineering/How_To/Setup_Personal_Development_Master#Create_a_build_master
 import os
 from lib.config import Config
-from lib.master import Master
-from lib.master import MasterError
+from lib.master import Master, MasterError
+from lib.master import Shipit, ShipitError
 import lib.logger
 import logging
 import argparse
@@ -24,8 +24,12 @@ if __name__ == '__main__':
     config.set('DEFAULT', 'tracking_bug', args.bug)
     log.info(config)
     master = Master(config)
+    shipit = Shipit(config)
     try:
         master.install()
+        shipit.install()
+
     except MasterError as error:
-        msg = 'master creation failed with the following error: {0}'.format(error)
-        log.error(msg)
+        log.error('unable to install buildbot master: ', error)
+    except ShipitError as error:
+        log.error('unable to install shipit: ', error)
