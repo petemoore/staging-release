@@ -26,7 +26,7 @@ class Virtualenv(object):
         if self.executable:
             return self.executable
 
-        for binary in self.binaries():
+        for binary in self.binaries:
             venv_exec = which(binary)
             if venv_exec:
                 self.executable = venv_exec
