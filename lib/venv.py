@@ -47,7 +47,7 @@ class Virtualenv(object):
         log.info('creating virtualenv')
         venv = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE)
         while True:
-            log.debug(venv.stdout.readline())
+            log.debug(venv.stdout.readline().strip())
             if venv.poll() is not None:
                 break
 
@@ -59,6 +59,6 @@ class Virtualenv(object):
         log.info('installing required packages')
         pip = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE)
         while True:
-            log.debug(pip.stdout.readline())
+            log.debug(pip.stdout.readline().strip())
             if pip.poll() is not None:
                 break
