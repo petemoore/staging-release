@@ -56,10 +56,10 @@ class Shipit(object):
     def _create_startup_file(self):
         startup = self.configuration.get('shipit', 'startup')
         startup_path = self.configuration.get('shipit', 'startup_path')
-        with open(startup_path) as strt:
-            strt.write('#!/bin/bash\n\n')
-            strt.write('source {0}\n'.format(self.activate_path))
-            strt.write("{0} {1}\n".format(self.python_path, startup))
+        with open(startup_path, 'w') as startup_script:
+            startup_script.write('#!/bin/bash\n\n')
+            startup_script.write('source {0}\n'.format(self.activate_path))
+            startup_script.write("{0} {1}\n".format(self.python_path, startup))
 
     def start(self):
         """starts a ship it instance"""
