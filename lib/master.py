@@ -121,6 +121,7 @@ class MasterJson(object):
 
     def write(self, dst):
         # json file == this section + limit branches
-        conf = self._sections[self.section]
+        conf = self.configuration
+        conf._sections[self.section]
         conf.append(self._limit_keys)
         print json.dump(conf)
