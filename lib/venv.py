@@ -43,10 +43,10 @@ class Virtualenv(object):
         if not self._executable():
             raise VirtualenvError('virtualenv is not installed')
 
-        cwd = dst_dir
+        self.basedir = dst_dir
         cmd = (self._executable(), self.install_directory)
         log.info('creating virtualenv')
-        venv = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE)
+        venv = subprocess.Popen(cmd, cwd=self.basedir, stdout=subprocess.PIPE)
         while True:
             log.debug(venv.stdout.readline().strip())
             if venv.poll() is not None:
