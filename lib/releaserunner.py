@@ -1,10 +1,10 @@
 """creates and configures release runner"""
 import os
 import sh
+import copy
 import lib.logger
 import logging
 import stat
-from lib.config import Config
 from lib.venv import Virtualenv, VirtualenvError
 
 log = logging.getLogger(__name__)
@@ -65,10 +65,10 @@ class ReleaseRunner(object):
     def create_ini_file(self):
         src_ini_file = self.configuration.get('release_runner', 'src_ini_file')
         dst_ini_file = self.configuration.get('release_runner', 'dst_ini_file')
-        pb_port = self.configuration.get('master', 'pb_port')
         # we need a new configuration for our new ini file
         # so we can inject values form the our current config (port, user, ...)
-        conf = Config()
+        pb_port = self.configuration.get('master', 'pb_port')
+        conf = copy.deepcopy(self.configuration)
         conf.set('DEFAULT', 'pb_port', pb_port)
         conf.set('DEFAULT', 'username', self.username)
         conf.set('DEFAULT', 'password', self.password)

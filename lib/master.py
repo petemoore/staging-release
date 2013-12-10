@@ -1,13 +1,13 @@
 """creates and cofigures a staging master"""
 import os
 import json
+import copy
 import tempfile
 import shutil
 from sh import hg
 from sh import make
 import lib.logger
 import logging
-from lib.config import Config
 
 log = logging.getLogger(__name__)
 
@@ -105,19 +105,10 @@ class MasterJson(object):
     def __init__(self, configuration, src_ini_file):
         self.section = 'master_json'
 
-        dst_conf = Config()
+        dst_conf = copy.deepcopy(configuration)
         # set values in current section
         # read values form other sections and write them
         # in current section so it can be interpolated
-        basedir = configuration.get('master', 'basedir')
-        http_port = configuration.get('master', 'http_port')
-        ssh_port = configuration.get('master', 'ssh_port')
-        pb_port = configuration.get('master', 'pb_port')
-
-        dst_conf.set('DEFAULT', 'basedir', basedir)
-        dst_conf.set('DEFAULT', 'http_port', http_port)
-        dst_conf.set('DEFAULT', 'ssh_port', ssh_port)
-        dst_conf.set('DEFAULT', 'pb_port', pb_port)
         dst_conf.read_from(src_ini_file)
         self.configuration = dst_conf
 
