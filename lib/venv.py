@@ -36,7 +36,7 @@ class Virtualenv(object):
                 return self.executable
         return self.executable
 
-    def create(self, dst_dir, requirements_file):
+    def create(self, dst_dir):
         """creates a virtualenv in dst_dir and installs
            the required packages from requirements_file
         """
@@ -52,13 +52,27 @@ class Virtualenv(object):
             if venv.poll() is not None:
                 break
 
-        self.basedir = dst_dir
+    def install_requirements(self, requirements):
+        if isinstance(requirements, str):
+            requirements = [requirements]
+        conf = self.configuration
+        pip_path = conf.get('virtualenv', 'pip')
+        pip_path = os.path.join(self.basedir, pip_path)
+        cmd = [pip_path, 'install'] + requirements
+        log.info('installing required packages')
+        pip = subprocess.Popen(cmd, cwd=self.basedir, stdout=subprocess.PIPE)
+        while True:
+            log.debug(pip.stdout.readline().strip())
+            if pip.poll() is not None:
+                break
+
+    def install_requirements_from_file(self, requirements_file):
         conf = self.configuration
         pip_path = conf.get('virtualenv', 'pip')
         pip_path = os.path.join(self.basedir, pip_path)
         cmd = (pip_path, 'install', '-r', requirements_file)
         log.info('installing required packages')
-        pip = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE)
+        pip = subprocess.Popen(cmd, cwd=self.basedir, stdout=subprocess.PIPE)
         while True:
             log.debug(pip.stdout.readline().strip())
             if pip.poll() is not None:
