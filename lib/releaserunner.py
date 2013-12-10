@@ -20,7 +20,7 @@ class ReleaseRunner(object):
     def __init__(self, configuration):
         self.basedir = configuration.get('release_runner', 'basedir')
         self.username = configuration.get('release_runner', 'username')
-        self.password = configuration.get('release_runner', 'password')
+        self.password = configuration.get('shipit', 'password')
         self.repository = configuration.get('release_runner', 'repository')
         self.tracking_bug = configuration.get('release_runner', 'tracking_bug')
         self.requirements = configuration.get('release_runner', 'requirements')
