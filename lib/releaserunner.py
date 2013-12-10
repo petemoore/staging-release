@@ -35,6 +35,7 @@ class ReleaseRunner(object):
         self._clone(self.basedir)
         self.create_virtualenv()
         self._create_startup_file()
+        self.create_ini_file()
 
     def _clone(self, target_dir):
         """clones buildbot-configs into target_dir"""
@@ -74,7 +75,7 @@ class ReleaseRunner(object):
         conf.set('DEFAULT', 'tracking_bug', self.tracking_bug)
         # read src_ini_file, write it into the dst_ini_file
         # and log the new content
-        conf.read_file(src_ini_file)
+        conf.read_from(src_ini_file)
         with open(dst_ini_file, 'w') as dst:
             conf.write(dst)
 

@@ -118,7 +118,7 @@ class MasterJson(object):
         dst_conf.set('DEFAULT', 'http_port', http_port)
         dst_conf.set('DEFAULT', 'ssh_port', ssh_port)
         dst_conf.set('DEFAULT', 'pb_port', pb_port)
-        dst_conf.read_file(src_ini_file)
+        dst_conf.read_from(src_ini_file)
         self.configuration = dst_conf
 
     def _limit_keys(self):
