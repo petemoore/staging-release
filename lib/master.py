@@ -1,5 +1,6 @@
 """creates and cofigures a staging master"""
 import os
+import json
 import tempfile
 import shutil
 from sh import hg
@@ -35,6 +36,7 @@ class Master(object):
         log.debug('tmp_dir: {0}'.format(tmp_dir))
         self._clone_builbot_configs(tmp_dir)
         self._make(tmp_dir)
+        self.write_master_json(self)
         shutil.rmtree(tmp_dir)
 
     def _prepare_dirs(self):
@@ -88,3 +90,41 @@ class Master(object):
     def checkconfig(self):
         """checks master configuration"""
         make('checkconfig', _cwd=self.basedir)
+
+    def write_master_json(self):
+        mj = MasterJson(self.configuration)
+        mj.write('')
+
+
+class MasterJson(object):
+    def __init__(self, configuration):
+        self.section = 'master_json'
+        self.configuration = configuration
+
+        # set values in current section
+        # read values form other sections and write them
+        # in current section so it can be interpolated
+        basedir = configuration.get('master', 'basedir')
+        http_port = configuration.get('master', 'http_port')
+        ssh_port = configuration.get('master', 'ssh_port')
+        pb_port = configuration.get('master', 'pb_port')
+        role = configuration.get('master', 'role')
+
+        configuration.set(self.section, 'basedir', basedir)
+        configuration.set(self.section, 'http_port', http_port)
+        configuration.set(self.section, 'ssh_port', ssh_port)
+        configuration.set(self.section, 'pb_port', pb_port)
+        configuration.set(self.section, 'role', role)
+
+    def _limit_keys(self):
+        limit = []
+        conf = self.configuration
+        for limit in conf.get(self.section, 'limit_keys').split(','):
+            limit.append(conf._sections[limit])
+        return limit
+
+    def write(self, dst):
+        # json file == this section + limit branches
+        conf = self._sections[self.section]
+        conf.append(self._limit_keys)
+        print json.dump(conf)
