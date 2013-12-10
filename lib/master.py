@@ -37,7 +37,7 @@ class Master(object):
         log.debug('tmp_dir: {0}'.format(tmp_dir))
         self._clone_builbot_configs(tmp_dir)
         self._make(tmp_dir)
-        self.write_master_json(self)
+        self.write_master_json()
         shutil.rmtree(tmp_dir)
 
     def _prepare_dirs(self):
