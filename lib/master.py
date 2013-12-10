@@ -7,6 +7,7 @@ from sh import hg
 from sh import make
 import lib.logger
 import logging
+from lib.config import Config
 
 log = logging.getLogger(__name__)
 
@@ -92,15 +93,18 @@ class Master(object):
         make('checkconfig', _cwd=self.basedir)
 
     def write_master_json(self):
-        mj = MasterJson(self.configuration)
-        mj.write('')
+        conf = self.configuration
+        src_json_ini = conf.get('master', 'src_json_ini')
+        dst_json = conf.get('master', 'dst_json')
+        mj = MasterJson(self.configuration, src_json_ini)
+        mj.write(dst_json)
 
 
 class MasterJson(object):
-    def __init__(self, configuration):
+    def __init__(self, configuration, src_ini_file):
         self.section = 'master_json'
-        self.configuration = configuration
 
+        dst_conf = Config()
         # set values in current section
         # read values form other sections and write them
         # in current section so it can be interpolated
@@ -108,13 +112,13 @@ class MasterJson(object):
         http_port = configuration.get('master', 'http_port')
         ssh_port = configuration.get('master', 'ssh_port')
         pb_port = configuration.get('master', 'pb_port')
-        role = configuration.get('master', 'role')
 
-        configuration.set(self.section, 'basedir', basedir)
-        configuration.set(self.section, 'http_port', http_port)
-        configuration.set(self.section, 'ssh_port', ssh_port)
-        configuration.set(self.section, 'pb_port', pb_port)
-        configuration.set(self.section, 'role', role)
+        dst_conf.set('DEFAULT', 'basedir', basedir)
+        dst_conf.set('DEFAULT', 'http_port', http_port)
+        dst_conf.set('DEFAULT', 'ssh_port', ssh_port)
+        dst_conf.set('DEFAULT', 'pb_port', pb_port)
+        dst_conf.read_file(src_ini_file)
+        self.configuration = dst_conf
 
     def _limit_keys(self):
         limit = []
