@@ -31,6 +31,7 @@ class ReleaseRunner(object):
 
     def install(self):
         """installs buildbot master"""
+        log.info('installing release runner')
         self._clone(self.basedir)
         self.create_virtualenv()
         self._create_startup_file()

@@ -29,6 +29,7 @@ class Shipit(object):
 
     def install(self):
         """installs buildbot master"""
+        log.info('installing ship it')
         self._clone(self.basedir)
         self.create_virtualenv()
         self._create_startup_file()

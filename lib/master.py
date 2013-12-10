@@ -31,7 +31,8 @@ class Master(object):
         """installs buildbot master"""
         self._prepare_dirs()
         tmp_dir = tempfile.mkdtemp()
-        log.info('tmp_dir: {0}'.format(tmp_dir))
+        log.info('installing buildbot master')
+        log.debug('tmp_dir: {0}'.format(tmp_dir))
         self._clone_builbot_configs(tmp_dir)
         self._make(tmp_dir)
         shutil.rmtree(tmp_dir)
