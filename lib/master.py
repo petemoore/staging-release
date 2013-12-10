@@ -20,6 +20,7 @@ class MasterError(Exception):
 class Master(object):
     """creates a buildbot master"""
     def __init__(self, configuration):
+        self.configuration = configuration
         self.username = configuration.get('DEFAULT', 'username')
         self.basedir = configuration.get('master', 'basedir')
         self.http_port = configuration.get('master', 'http_port')
