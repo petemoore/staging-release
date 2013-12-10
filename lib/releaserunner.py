@@ -38,8 +38,8 @@ class ReleaseRunner(object):
     def _clone(self, target_dir):
         """clones buildbot-configs into target_dir"""
         log.info('cloning {0}'.format(self.repository))
-        git_cmd = ('clone', self.repository, target_dir)
-        for line in sh.git(git_cmd, _iter=True):
+        hg_cmd = ('clone', self.repository, target_dir)
+        for line in sh.hg(hg_cmd, _iter=True):
             log.debug(line.strip())
 
     def _create_startup_file(self):
