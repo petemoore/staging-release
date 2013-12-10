@@ -41,7 +41,7 @@ class Shipit(object):
         self.activate_path = venv.activate_path
         self.python_path = venv.python_path
         try:
-            venv.create(self.basedir, self.requirements)
+            venv.create(self.basedir)
             venv.install_requirements_from_file(self.requirements)
         except VirtualenvError as error:
             msg = 'cannot create virtualenv: {0}'.format(error.message)
