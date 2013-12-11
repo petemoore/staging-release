@@ -5,10 +5,10 @@ import tempfile
 import shutil
 from sh import hg
 from sh import make
-import lib.logger
 from lib.config import duplicate
-import logging
-log = logging.getLogger(__name__)
+
+from lib.logger import logger
+log = logger(__name__)
 
 
 class MasterError(Exception):

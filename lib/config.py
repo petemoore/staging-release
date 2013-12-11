@@ -5,12 +5,11 @@ import os
 import pwd
 import random
 import string
-import logging
 import lib.ports as ports
-import lib.logger
 from configparser import ConfigParser, ExtendedInterpolation
 
-log = logging.getLogger(__name__)
+from lib.logger import logger
+log = logger(__name__)
 
 
 def get_username():

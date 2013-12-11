@@ -4,6 +4,9 @@ are already in use or it's free
 """
 import socket
 
+from lib.logger import logger
+log = logger(__name__)
+
 
 def in_use(port):
     """ checks if given port is in use."""

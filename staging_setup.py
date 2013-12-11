@@ -6,13 +6,12 @@ from lib.config import Config
 from lib.master import Master, MasterError
 from lib.shipit import Shipit, ShipitError
 from lib.releaserunner import ReleaseRunner, ReleaseRunnerError
-import lib.logger
-import logging
+from lib.logger import logger
 import argparse
 
 if __name__ == '__main__':
 
-    log = logging.getLogger('staging release')
+    log = logger('staging release')
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-b', '--bug', help='bug tracking id', required=True)
@@ -23,7 +22,7 @@ if __name__ == '__main__':
     config_ini = os.path.join(os.path.dirname(__file__), "config.ini")
     config.read_from(config_ini)
     config.set('common', 'tracking_bug', args.bug)
-    log.info(config)
+    log.debug(config)
     master = Master(config)
     shipit = Shipit(config)
     releaseR = ReleaseRunner(config)

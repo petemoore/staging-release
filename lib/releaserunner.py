@@ -1,12 +1,11 @@
 """creates and configures release runner"""
 import os
 import sh
-import lib.logger
-import logging
 import stat
 from lib.venv import Virtualenv, VirtualenvError
 
-log = logging.getLogger(__name__)
+from lib.logger import logger
+log = logger(__name__)
 
 
 class ReleaseRunnerError(Exception):

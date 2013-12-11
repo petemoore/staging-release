@@ -8,6 +8,9 @@ Please not that this module can be very dangerous
 import lib.locales as locales
 from sh import ssh
 
+from lib.logger import logger
+log = logger(__name__)
+
 
 class RepositoryError(Exception):
     """

@@ -2,11 +2,10 @@
 import os
 from lib.venv import Virtualenv, VirtualenvError
 from sh import git
-import lib.logger
-import logging
 import stat
 
-log = logging.getLogger(__name__)
+from lib.logger import logger
+log = logger(__name__)
 
 
 class ShipitError(Exception):

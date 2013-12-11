@@ -1,10 +1,9 @@
 import os
 from lib.which import which
 import subprocess
-import lib.logger
-import logging
 
-log = logging.getLogger(__name__)
+from lib.logger import logger
+log = logger(__name__)
 
 
 class VirtualenvError(Exception):
