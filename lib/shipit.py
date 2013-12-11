@@ -18,8 +18,6 @@ class Shipit(object):
     """creates a shipit instance"""
     def __init__(self, configuration):
         self.repository = configuration.get('shipit', 'repository')
-        self.username = configuration.get('shipit', 'username')
-        self.password = configuration.get('shipit', 'password')
         self.basedir = configuration.get('shipit', 'basedir')
         req = configuration.get('shipit', 'requirements')
         self.requirements = os.path.join(self.basedir, req)
