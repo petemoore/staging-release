@@ -1,7 +1,6 @@
 """creates and configures release runner"""
 import os
 import sh
-import copy
 import lib.logger
 import logging
 import stat
@@ -18,12 +17,12 @@ class ReleaseRunnerError(Exception):
 class ReleaseRunner(object):
     """creates a release runner instance"""
     def __init__(self, configuration):
-        self.basedir = configuration.get('release_runner', 'basedir')
-        self.username = configuration.get('release_runner', 'username')
+        self.basedir = configuration.get('release-runner', 'basedir')
+        self.username = configuration.get('release-runner', 'username')
         self.password = configuration.get('shipit', 'password')
-        self.repository = configuration.get('release_runner', 'repository')
-        self.tracking_bug = configuration.get('release_runner', 'tracking_bug')
-        self.requirements = configuration.get('release_runner', 'requirements')
+        self.repository = configuration.get('release-runner', 'repository')
+        self.tracking_bug = configuration.get('release-runner', 'tracking_bug')
+        self.requirements = configuration.get('release-runner', 'requirements')
         self.requirements = self.requirements.split(',')
         self.configuration = configuration
         self.activate_path = None
@@ -45,8 +44,8 @@ class ReleaseRunner(object):
             log.debug(line.strip())
 
     def _create_startup_file(self):
-        startup = self.configuration.get('release_runner', 'startup')
-        startup_path = self.configuration.get('release_runner', 'startup_path')
+        startup = self.configuration.get('release-runner', 'startup')
+        startup_path = self.configuration.get('release-runner', 'startup_path')
         log.info('writing release runner startup file')
         with open(startup_path, 'w') as startup_script:
             startup_script.write('#!/bin/bash\n\n')
@@ -63,19 +62,11 @@ class ReleaseRunner(object):
         os.chmod(startup_path, st.st_mode | stat.S_IEXEC)
 
     def create_ini_file(self):
-        src_ini_file = self.configuration.get('release_runner', 'src_ini_file')
-        dst_ini_file = self.configuration.get('release_runner', 'dst_ini_file')
-        # we need a new configuration for our new ini file
-        # so we can inject values form the our current config (port, user, ...)
-        pb_port = self.configuration.get('master', 'pb_port')
-        conf = copy.deepcopy(self.configuration)
-        conf.set('DEFAULT', 'pb_port', pb_port)
-        conf.set('DEFAULT', 'username', self.username)
-        conf.set('DEFAULT', 'password', self.password)
-        conf.set('DEFAULT', 'tracking_bug', self.tracking_bug)
-        # read src_ini_file, write it into the dst_ini_file
-        # and log the new content
-        conf.read_from(src_ini_file)
+        dst_ini_file = self.configuration.get('release-runner', 'dst_ini_file')
+        # merged release_runner.ini with config.ini
+        # no need for copy the configuration and importing values into
+        # release runner... just save config.ini as relase_runner.ini
+        conf = self.configuration
         with open(dst_ini_file, 'w') as dst:
             conf.write(dst)
 
@@ -98,7 +89,7 @@ class ReleaseRunner(object):
         """starts a release runner instance"""
         # it's a blocking operation.
         log.info('starting release runner')
-        startup_path = self.configuration.get('release_runner', 'startup_path')
+        startup_path = self.configuration.get('release-runner', 'startup_path')
         sh(startup_path)
 
     def stop(self):
