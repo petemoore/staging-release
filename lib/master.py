@@ -1,14 +1,13 @@
 """creates and cofigures a staging master"""
 import os
 import json
-import copy
 import tempfile
 import shutil
 from sh import hg
 from sh import make
 import lib.logger
+from lib.config import duplicate
 import logging
-
 log = logging.getLogger(__name__)
 
 
@@ -104,24 +103,20 @@ class Master(object):
 class MasterJson(object):
     def __init__(self, configuration, src_ini_file):
         self.section = 'master_json'
-
-        dst_conf = copy.deepcopy(configuration)
-        # set values in current section
-        # read values form other sections and write them
-        # in current section so it can be interpolated
-        dst_conf.read_from(src_ini_file)
-        self.configuration = dst_conf
+        config = duplicate(configuration)
+        config.read(src_ini_file)
+        self.configuration = config
 
     def _limit_keys(self):
-        limit = []
+        limits = []
         conf = self.configuration
         for limit in conf.get(self.section, 'limit_keys').split(','):
-            limit.append(conf._sections[limit])
-        return limit
+            if limit:
+                limits.append(conf._sections[limit])
+        return limits
 
     def write(self, dst):
         # json file == this section + limit branches
+        # just a work in progress
         conf = self.configuration
-        conf._sections[self.section]
-        conf.append(self._limit_keys)
-        print json.dump(conf)
+        print conf

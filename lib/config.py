@@ -1,7 +1,6 @@
 """
 this module manages the configuration
 """
-import ConfigParser
 import os
 import pwd
 import random
@@ -9,6 +8,7 @@ import string
 import logging
 import lib.ports as ports
 import lib.logger
+from configparser import ConfigParser, ExtendedInterpolation
 
 log = logging.getLogger(__name__)
 
@@ -29,8 +29,11 @@ class ConfigError(Exception):
     pass
 
 
-class Config(ConfigParser.SafeConfigParser):
+class Config(ConfigParser):
     """this class manages the configuration"""
+    def __init__(self):
+        ConfigParser.__init__(self, interpolation=ExtendedInterpolation())
+
     def read_from(self, filenames):
         """reads the configuration from a file or a list of files
            and then generates some runtime specific values
@@ -122,3 +125,14 @@ class Config(ConfigParser.SafeConfigParser):
                 msg = "{0}{1}={2}\n".format(msg, option,
                                             self.get(section, option))
         return msg
+
+
+def duplicate(configuration):
+    conf = Config()
+    print "******"
+    print conf
+    print "******"
+
+    conf.read_dict(configuration)
+    return conf
+
