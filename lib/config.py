@@ -40,6 +40,19 @@ class Config(ConfigParser):
         self.read(filenames)
         self._set_runtime_values()
 
+    def write_to(self, filename, sep='='):
+        """this method writes interpolated values to a file.
+           Standard write() creates a file with interpolated values
+           left untouched.
+           sep is the separator between option and value, it can be '=' or ':'
+        """
+        with open(filename, 'w') as dst:
+            for section in self.sections():
+                dst.write('[{0}]\n'.format(section))
+                for option in self.options(section):
+                    value = self.get(section, option)
+                    dst.write('{0}{1}{2}\n'.format(option, sep, value))
+
     def _set_runtime_values(self):
         """this method collects all the values that should be
             determined at runtime"""

@@ -64,7 +64,7 @@ class ReleaseRunner(object):
         # release runner... just save config.ini as relase_runner.ini
         conf = self.configuration
         with open(dst_ini_file, 'w') as dst:
-            conf.write(dst)
+            conf.write_to(dst)
 
     def create_virtualenv(self):
         """creates a virtualenv for release runner
