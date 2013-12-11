@@ -58,13 +58,12 @@ class ReleaseRunner(object):
         os.chmod(startup_path, st.st_mode | stat.S_IEXEC)
 
     def create_ini_file(self):
-        dst_ini_file = self.configuration.get('release-runner', 'dst_ini_file')
+        conf = self.configuration
+        dst_ini_file = conf.get('release-runner', 'dst_ini_file')
         # merged release_runner.ini with config.ini
         # no need for copy the configuration and importing values into
         # release runner... just save config.ini as relase_runner.ini
-        conf = self.configuration
-        with open(dst_ini_file, 'w') as dst:
-            conf.write_to(dst)
+        conf.write_to(dst_ini_file)
 
     def create_virtualenv(self):
         """creates a virtualenv for release runner
