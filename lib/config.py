@@ -62,7 +62,7 @@ class Config(ConfigParser):
         """
         username = get_username()
         log.debug('username: {0}'.format(username))
-        self.set('DEFAULT', 'username', username)
+        self.set('common', 'username', username)
 
     def _set_shipit_password(self):
         """generates a random password for shipit"""
@@ -73,7 +73,7 @@ class Config(ConfigParser):
 
     def _set_shipit_port(self):
         """finds an empty port for shipit"""
-        shipit_base_port = int(self.get('shipit', 'shipit_port_range'))
+        shipit_base_port = int(self.get('ports', 'shipit_port_range'))
         available_ports = ports.available_in_range(shipit_base_port,
                                                    shipit_base_port + 1000)
         shipit_port = str(available_ports.pop())
@@ -86,9 +86,9 @@ class Config(ConfigParser):
         # http port is in range 8000-8999
         # ssh port == http_port - 1000
         # pb_port == http_poer + 1000
-        http_base_port = int(self.get('master', 'http_port_range'))
-        ssh_base_port = int(self.get('master', 'ssh_port_range'))
-        pb_base_port = int(self.get('master', 'pb_port_range'))
+        http_base_port = int(self.get('ports', 'master_http_port_range'))
+        ssh_base_port = int(self.get('ports', 'master_ssh_port_range'))
+        pb_base_port = int(self.get('ports', 'master_pb_port_range'))
         available_ports = ports.available_in_range(http_base_port,
                                                    http_base_port + 1000)
 
