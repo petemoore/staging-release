@@ -18,10 +18,7 @@ class ReleaseRunner(object):
     """creates a release runner instance"""
     def __init__(self, configuration):
         self.basedir = configuration.get('release-runner', 'basedir')
-        self.username = configuration.get('release-runner', 'username')
-        self.password = configuration.get('shipit', 'password')
         self.repository = configuration.get('release-runner', 'repository')
-        self.tracking_bug = configuration.get('release-runner', 'tracking_bug')
         self.requirements = configuration.get('release-runner', 'requirements')
         self.requirements = self.requirements.split(',')
         self.configuration = configuration
