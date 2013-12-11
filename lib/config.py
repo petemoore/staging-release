@@ -73,10 +73,12 @@ class Config(ConfigParser):
 
     def _set_shipit_port(self):
         """finds an empty port for shipit"""
-        shipit_base_port = int(self.get('ports', 'shipit_port_range'))
-        available_ports = ports.available_in_range(shipit_base_port,
-                                                   shipit_base_port + 1000)
-        shipit_port = str(available_ports.pop())
+        port_range = int(self.get('port_ranges', 'range_size'))
+        shipit_base_port = int(self.get('port_ranges', 'shipit'))
+        _ports = ports.available_in_range(shipit_base_port,
+                                          shipit_base_port + port_range)
+        # this is not working properly...
+        shipit_port = str(_ports.pop())
         log.debug('shipit port: {0}'.format(shipit_base_port))
         self.set('shipit', 'port', shipit_port)
 
@@ -86,13 +88,14 @@ class Config(ConfigParser):
         # http port is in range 8000-8999
         # ssh port == http_port - 1000
         # pb_port == http_poer + 1000
-        http_base_port = int(self.get('ports', 'master_http_port_range'))
-        ssh_base_port = int(self.get('ports', 'master_ssh_port_range'))
-        pb_base_port = int(self.get('ports', 'master_pb_port_range'))
-        available_ports = ports.available_in_range(http_base_port,
-                                                   http_base_port + 1000)
+        port_range = int(self.get('port_ranges', 'range_size'))
+        http_base_port = int(self.get('port_ranges', 'master_http'))
+        ssh_base_port = int(self.get('port_ranges', 'master_ssh'))
+        pb_base_port = int(self.get('port_ranges', 'master_pb'))
+        _ports = ports.available_in_range(http_base_port,
+                                          http_base_port + port_range)
 
-        for http_port in available_ports:
+        for http_port in _ports:
             # available_port is a set so http_port is a random available
             # port in range http_base_port, http_base_port + 1000
             # (set are unsorted collections)
