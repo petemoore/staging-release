@@ -57,7 +57,9 @@ class Master(object):
         """calls make to create a buildbot master"""
         log.info('creating master in {0}'.format(self.basedir))
         config = self.configuration
-        make_cmd = config.get('master', 'make_cmd').splitlines().strip()
+        make_cmd = config.get('master', 'make_cmd').splitlines()
+        # remove empty lines
+        make_cmd = [option for option in make_cmd if option]
         log.debug('make command: {0}'.format(make_cmd))
 
         for line in make(make_cmd, _cwd=cwd, _iter=True):
