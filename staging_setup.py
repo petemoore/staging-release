@@ -22,7 +22,7 @@ if __name__ == '__main__':
     config = Config()
     config_ini = os.path.join(os.path.dirname(__file__), "config.ini")
     config.read_from(config_ini)
-    config.set('DEFAULT', 'tracking_bug', args.bug)
+    config.set('common', 'tracking_bug', args.bug)
     log.info(config)
     master = Master(config)
     shipit = Shipit(config)
