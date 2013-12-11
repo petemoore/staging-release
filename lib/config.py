@@ -77,9 +77,9 @@ class Config(ConfigParser):
         shipit_base_port = int(self.get('port_ranges', 'shipit'))
         _ports = ports.available_in_range(shipit_base_port,
                                           shipit_base_port + port_range)
-        # this is not working properly...
-        shipit_port = str(_ports.pop())
-        log.debug('shipit port: {0}'.format(shipit_base_port))
+        log.debug('available ports: {0}'.format(_ports))
+        shipit_port = str(random.sample(_ports, 1))
+        log.debug('shipit port: {0}'.format(shipit_port))
         self.set('shipit', 'port', shipit_port)
 
     def _set_master_ports(self):
@@ -132,10 +132,5 @@ class Config(ConfigParser):
 
 def duplicate(configuration):
     conf = Config()
-    print "******"
-    print conf
-    print "******"
-
     conf.read_dict(configuration)
     return conf
-
