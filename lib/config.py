@@ -77,7 +77,6 @@ class Config(ConfigParser):
         shipit_base_port = int(self.get('port_ranges', 'shipit'))
         _ports = ports.available_in_range(shipit_base_port,
                                           shipit_base_port + port_range)
-        log.debug('available ports: {0}'.format(_ports))
         shipit_port = str(random.sample(_ports, 1))
         log.debug('shipit port: {0}'.format(shipit_port))
         self.set('shipit', 'port', shipit_port)
@@ -95,10 +94,12 @@ class Config(ConfigParser):
         _ports = ports.available_in_range(http_base_port,
                                           http_base_port + port_range)
 
-        for http_port in _ports:
-            # available_port is a set so http_port is a random available
-            # port in range http_base_port, http_base_port + 1000
-            # (set are unsorted collections)
+        while True:
+            if len(_ports) < 1:
+                # no more ports to test
+                break
+            # sample returns a single element list
+            http_port = random.sample(_ports, 1)[0]
             suffix = http_port - http_base_port
             # 8744 -> 744 (suffix)
             pb_port = pb_base_port + suffix
@@ -114,8 +115,9 @@ class Config(ConfigParser):
                 self.set('master', 'pb_port', str(pb_port))
                 self.set('master', 'http_port', str(http_port))
                 return
-
-        # no available ports!
+            # some of the ports was not free
+            # discarding current port and picking up a new one
+            _ports.discard(http_port)
         # giving up
         msg = "no available ports for your staging master. Giving up"
         raise ConfigError(msg)
