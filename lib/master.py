@@ -20,6 +20,7 @@ class Master(object):
     """creates a buildbot master"""
     def __init__(self, configuration):
         self.configuration = configuration
+        self.basedir = configuration.get('master', 'basedir')
         self.buildbot_configs_repo = configuration.get('master',
                                                        'buildbot_configs_repo')
 
