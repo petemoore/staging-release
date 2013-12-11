@@ -51,7 +51,7 @@ class ReleaseRunner(object):
 
         # log the new file
         with open(startup_path, 'r') as startup_script:
-            log.debug(startup_script)
+            log.debug(startup_script.read())
 
         # make it executable (the hard way)
         st = os.stat(startup_path)
