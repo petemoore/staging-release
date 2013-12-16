@@ -15,6 +15,8 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-b', '--bug', help='bug tracking id', required=True)
+    msg = 'staging release comma separated values (e.g: firefox,fennec)'
+    parser.add_argument('-r', '--release', help=msg)
     args = parser.parse_args()
 
     # reading configuration
@@ -22,6 +24,7 @@ if __name__ == '__main__':
     config_ini = os.path.join(os.path.dirname(__file__), "config.ini")
     config.read_from(config_ini)
     config.set('common', 'tracking_bug', args.bug)
+    config.set('common', 'staging_release', args.bug)
     log.debug(config)
     master = Master(config)
     shipit = Shipit(config)

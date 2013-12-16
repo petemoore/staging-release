@@ -1,4 +1,7 @@
+import os
 import sh
+import shutil
+import tempfile
 
 from lib.logger import logger
 log = logger(__name__)
@@ -38,6 +41,7 @@ class BuildbotConfigs(object):
         sh.ssh(cmd)
 
     def delete_user_repo(self):
+        """delete user's remote repository"""
         conf = self.configuration
         dst_repo_name = conf.get('buildbot-configs', 'dst_repo_name')
         if not dst_repo_name.endswith(self.bug):
@@ -63,15 +67,64 @@ class BuildbotConfigs(object):
             raise BuildbotConfigsError(msg)
 
     def clone_locally(self, dst_dir):
+        """clones the repo into dst_dir"""
         conf = self.configuration
         repo = conf.get('buildbot-configs', 'repo')
         cmd = ('clone', repo, dst_dir)
         log.debug('running sh {0}'.format(' '.join(cmd)))
+        self.local_checkout_dir = dst_dir
         try:
             sh.hg('clone', repo, dst_dir)
         except sh.ErrorReturnCode as error:
             msg = 'clone failed'
             msg = '{0}: hg {1}'.format(msg, ' '.join(cmd))
             msg = '{0} - error: {1}'.format(msg, error)
-            log.error(msg)
+            log.debug(msg)
             raise BuildbotConfigsError('clone failed')
+
+    def prepare_for_staging(self):
+        """updates the references to build/... -> users/...
+           of a local checkout.
+        """
+        if not self.local_checkout_dir:
+            msg = 'prepare for staging failed: local checkout does not exist'
+            raise BuildbotConfigsError(msg)
+        files = set()
+        for root, dirs, files in os.walk(self.local_checkout_dir):
+            for script in files:
+                if script.endswith('.py'):
+                    with open(os.path.join(root, script)) as src:
+                        for line in src.readlines():
+                            if 'build/' in line and 'test' not in line:
+                                files.add(os.path.join(root, script))
+
+        files = filter(lambda k: 'test' not in k, files)
+        files = filter(lambda k: 'calendar' not in k, files)
+        files = filter(lambda k: 'seamonkey' not in k, files)
+        files = filter(lambda k: 'b2g' not in k, files)
+        return files
+
+
+def update_to_user_repo(configuration, filename):
+    """Updates repositories name in place;
+       from build/<repo> to users/<ldap>_mozilla.com/<repo>-<bug>
+    """
+
+    username = configuration.get('common', 'username')
+    bug = configuration.get('common', 'tracking_bug')
+    tmp_file = tempfile.NamedTemporaryFile(delete=False)
+    with open(tmp_file.name, 'w') as out:
+        with open(filename, 'r') as script:
+            print filename
+            for line in script:
+                if 'build' in line:
+                    before, sep, after = line.partition('build/')
+                    sep = 'users/{0}_mozilla.com'.format(username)
+                    repo = after.partition('/')[0].partition("'")[0]
+                    repo = '{0}-{1}'.format(repo, bug)
+                    updated_line = ''.join(before, sep, repo)
+                    print updated_line
+                    out.write(updated_line)
+                else:
+                    out.write(line)
+    shutil.move(tmp_file.name, filename)
