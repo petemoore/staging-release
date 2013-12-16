@@ -5,92 +5,105 @@ adding -self.bug (tracking bug id from bugzilla) to already existing user
 repositories are not deleted.
 Please not that this module can be very dangerous
 """
-import lib.locales as locales
-from sh import ssh
+
+from lib.logger import logger
+log = logger(__name__)
+
+import sh
 
 from lib.logger import logger
 log = logger(__name__)
 
 
 class RepositoryError(Exception):
-    """
-    Something failed during clone/delete phases
-    """
-    pass
+    """Generic Repository Eerror"""
 
 
-class Repositories(object):
+class Repository(object):
+    """Clones hg.m.o repositories into user's one
+       manages checkouts and user's repository deletion
     """
-    this class manages the creation and deleting of hg user repo
-    this class can be very dangerous
-    """
-    def __init__(self, configuration, username, tracking_bug):
-        self.config = configuration
-        self.username = username
-        self.bug = tracking_bug
-        self.locales = None
+    def __init__(self, configuration, name):
+        self.configuration = configuration
+        self.name = name
+        self.bug = configuration.get('common', 'tracking_bug')
+        self.local_checkout_dir = None
 
-    def repos_name(self):
+    def create_repo(self):
+        """creates a reposiory as
+           a copy of https://hg.mozilla.org/build/self.name/
+           It creates hg.m.o/users/<ldap>_mozilla.com/self.name-<bug>
+           appending -<bug> because this script creates and destroys that
+           repo without asking for user permission.
+
         """
-        returns a list of repositories that will be cloned by this object
-        """
-        config = self.config
-        return config.options('repositories')
-
-    def prepare(self):
-        """clones mozilla build/<repo>
-           into .../users/<username>_mozilla.com/<repo>-bug
-           ACHTUNG
-           prepare has 2 steps:
-           1) DELETE .../users/<username>_mozilla.com/<repo>-bug
-           2) fresh clone of mozilla repo into user's repo
-        """
-        for repo in self.repos_name():
-            src_repo = "build/{0}".format(repo)
-            dst_repo = "{0}-{1}".format(repo, self.bug)
-            self._delete_user_repo(dst_repo)
-            self._clone_into_user_repo(src_repo, dst_repo)
-
-        # locales
-        for locale in self._locales_list():
-            src_repo = "l10n-central/{0}".format(locale)
-            dst_repo = "{0}-{1}".format(locale, self.bug)
-            self._delete_user_repo(dst_repo)
-            self._clone_into_user_repo(src_repo, dst_repo)
-
-            # add mozilla central here or update config.ini
-            # ssh hg.mozilla.org edit mozilla-central delete YES
-            # ssh hg.mozilla.org clone mozilla-central mozilla-central
-
-    def _clone_into_user_repo(self, src_repo, dst_repo):
-        """clones mozilla's repo into user's repo"""
-        suffix = '-{0}'.format(self.bug)
-        if not dst_repo.endswith(suffix):
-            msg = "cowardly refusing to delete {0}".format(dst_repo)
-            msg = "{0}, if does not end with {1}".format(msg, suffix)
+        conf = self.configuration
+        src_repo_name = conf.get(self.name, 'src_repo_name')
+        dst_repo_name = conf.get(self.name, 'dst_repo_name')
+        if not dst_repo_name.endswith(self.bug):
+            msg = "cowardly refusing to clone {0}".format(dst_repo_name)
+            msg = "{0}, its name does not end with {1}".format(msg, self.bug)
+            log.error(msg)
             raise RepositoryError(msg)
-        ssh("hg.mozilla.org", "clone", dst_repo, src_repo)
+        cmd = ("hg.mozilla.org", "clone", dst_repo_name,  src_repo_name)
+        log.info('cloning {0} to {1}'.format(src_repo_name, dst_repo_name))
+        log.debug('running ssh {0}'.format(' '.join(cmd)))
+        sh.ssh(cmd)
 
-    def _delete_user_repo(self, repository_name):
-        """deletes user's repository <name>-<bug>
-        """
-        suffix = "-{0}".format(self.bug)
-        if not repository_name.endswith(suffix):
-            msg = "cowardly refusing to delete {0}".format(repository_name)
-            msg = "{0}, if does not end with -{1}".format(msg, self.bug)
+    def delete_user_repo(self):
+        """delete user's remote repository"""
+        conf = self.configuration
+        dst_repo_name = conf.get(self.name, 'dst_repo_name')
+        if not dst_repo_name.endswith(self.bug):
+            msg = "cowardly refusing to delete {0}".format(dst_repo_name)
+            msg = "{0}, its name does not end with {1}".format(msg, self.bug)
+            log.error(msg)
             raise RepositoryError(msg)
-        ssh("hg.mozilla.org", "edit", repository_name,  "delete", "YES")
-
-    def _locales_list(self):
-        """
-        gets the list of shipped locales (en-US is excluded from this list)
-        """
-        if self.locales:
-            return self.locales
-        conf = self.config
-        url = conf.get('locales', 'url')
+        cmd = ("hg.mozilla.org", "edit", dst_repo_name,  "delete", "YES")
+        log.info('deleting {0}'.format(dst_repo_name))
+        log.debug('running ssh {0}'.format(' '.join(cmd)))
+        output = []
         try:
-            self.locales = locales.get_shipped_locales(url)
-        except locales.NoLocalesError as error:
-            raise RepositoryError(error)
-        return self.locales
+            for line in sh.ssh(cmd, _iter=True):
+                out = line.strip()
+                log.debug(out)
+                output.append(out)
+        except sh.ErrorReturnCode_1:
+            log.debug('trying to delete a non existing repo... pass')
+            pass
+        except sh.ErrorReturnCode:
+            msg = 'bad exit code executing {0}'.format(' '.join(cmd))
+            log.error(msg)
+            raise RepositoryError(msg)
+
+    def clone_locally(self, dst_dir, branch='default'):
+        """clones the repo into dst_dir"""
+        conf = self.configuration
+        repo = conf.get(self.name, 'repo')
+        cmd = ('clone', repo, dst_dir)
+        log.debug('running sh {0}'.format(' '.join(cmd)))
+        self.local_checkout_dir = dst_dir
+        hg_cmd = ('clone', '-b', branch, repo, dst_dir)
+        try:
+            for line in sh.hg(hg_cmd, _iter=True):
+                log.debug(line.strip())
+        except sh.ErrorReturnCode as error:
+            msg = 'clone failed'
+            msg = '{0}: hg {1}'.format(msg, ' '.join(cmd))
+            msg = '{0} - error: {1}'.format(msg, error)
+            log.debug(msg)
+            raise RepositoryError('clone failed')
+
+
+class Repositories(Exception):
+    def __init__(self, configuration):
+        self.configuration = configuration
+
+    def prepare_user_repos(self):
+        conf = self.configuration
+        repos = conf.options('repositories')
+        for repo in repos:
+            log.info(repo)
+            repo = Repository(conf, repo)
+            repo.delete_user_repo()
+            repo.create_repo()

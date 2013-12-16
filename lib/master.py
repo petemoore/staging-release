@@ -1,11 +1,9 @@
 """creates and cofigures a staging master"""
 import os
 import json
-import tempfile
-import shutil
-from sh import hg
 from sh import make
 from lib.config import duplicate
+from lib.repositories import Repository, RepositoryError
 
 from lib.logger import logger
 log = logger(__name__)
@@ -27,31 +25,39 @@ class Master(object):
     def install(self):
         """installs buildbot master"""
         self._prepare_dirs()
-        tmp_dir = tempfile.mkdtemp()
         log.info('installing buildbot master')
-        log.debug('tmp_dir: {0}'.format(tmp_dir))
-        self._clone_builbot_configs(tmp_dir)
-        self._make(tmp_dir)
-        self.write_master_json()
-        shutil.rmtree(tmp_dir)
+        self._clone_repositories()
 
     def _prepare_dirs(self):
         """creates required directories
            rises a MasterError if directories are already in place."""
-        # If a directory already exists, probably, this script
-        # probaly this script has been executed
+        # If a directory already exists, probably
+        # this has already been executed
         try:
             os.makedirs(self.basedir)
         except OSError as error:
             msg = 'Cannot create: {0} ({1})'.format(self.basedir, error)
             raise MasterError(msg)
 
-    def _clone_builbot_configs(self, target_dir):
-        """clones buildbot-configs into target_dir"""
-        log.info('cloning {0}'.format(self.buildbot_configs_repo))
-        hg_cmd = ('clone', self.buildbot_configs_repo, target_dir)
-        for line in hg(hg_cmd, _iter=True):
-            log.debug(line.strip())
+    def _to_canoical_name(self, repo_name):
+        config = self.configuration
+        bug = config.get('common', 'tracking_bug')
+        bug = '-{0}'.format(bug)
+        name = repo_name.split('/')[-1]
+        if name.endswith(bug):
+            name = name.partition(bug)[0]
+        log.debug('canonical name: {0} => {1}'.format(repo_name, name))
+        return name
+
+    def _clone_repositories(self):
+        """clones buildbot-configs"""
+        config = self.configuration
+        repos = config.get('master', 'repositories').split(',')
+        for repo in repos:
+            dst_dir = os.path.join(self.basedir,
+                                   self._to_canoical_name(repo))
+            log.info('cloning {0} to {1}'.format(repo, dst_dir))
+            self._clone_hg_repo(repo, dst_dir)
 
     def _make(self, cwd):
         """calls make to create a buildbot master"""
@@ -83,6 +89,14 @@ class Master(object):
         dst_json = conf.get('master', 'dst_json')
         mj = MasterJson(self.configuration, src_json_ini)
         mj.write(dst_json)
+
+    def _clone_hg_repo(self, name, dst_dir, branch='default'):
+        try:
+            repo = Repository(self.configuration, name)
+            repo.clone_locally(dst_dir, branch)
+        except RepositoryError as error:
+            log.error(error)
+            raise MasterError(error)
 
 
 class MasterJson(object):
