@@ -6,6 +6,7 @@ import pwd
 import random
 import string
 import lib.ports as ports
+from lib.which import which
 from configparser import ConfigParser, ExtendedInterpolation
 
 from lib.logger import logger
@@ -60,6 +61,7 @@ class Config(ConfigParser):
         self._set_shipit_password()
         self._set_shipit_port()
         self._set_master_ports()
+        self._set_python_path()
 
     def _set_username(self):
         # username cannot be hard coded in config.ini
@@ -133,6 +135,10 @@ class Config(ConfigParser):
         # giving up
         msg = "no available ports for your staging master. Giving up"
         raise ConfigError(msg)
+
+    def _set_python_path(self):
+        """adds the full path to your python executable in common:python_path"""
+        self.set('common', 'python_path', which('python'))
 
     def __str__(self):
         msg = ""

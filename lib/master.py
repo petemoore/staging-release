@@ -1,8 +1,8 @@
 """creates and cofigures a staging master"""
 import os
-import json
-from sh import make
-from lib.config import duplicate
+import sh
+import subprocess
+from lib.venv import Virtualenv
 from lib.repositories import Repository, RepositoryError
 
 from lib.logger import logger
@@ -21,12 +21,27 @@ class Master(object):
         self.basedir = configuration.get('master', 'basedir')
         self.buildbot_configs_repo = configuration.get('master',
                                                        'buildbot_configs_repo')
+        self.venv = None
 
     def install(self):
         """installs buildbot master"""
         self._prepare_dirs()
         log.info('installing buildbot master')
-        self._clone_repositories()
+        self.virtualenv()
+        self.deps()
+        self.install_buildbot()
+        self.master()
+
+    def master(self):
+        config = self.configuration
+        cmd = config.get('master', 'create_master').split(',')
+        cmd = [line.strip() for line in cmd]
+        cwd = os.path.join(self.basedir, 'buildbot-configs')
+        script = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE)
+        while True:
+            log.debug(script.stdout.readline().strip())
+            if script.poll() is not None:
+                break
 
     def _prepare_dirs(self):
         """creates required directories
@@ -37,7 +52,8 @@ class Master(object):
             os.makedirs(self.basedir)
         except OSError as error:
             msg = 'Cannot create: {0} ({1})'.format(self.basedir, error)
-            raise MasterError(msg)
+            log.debug(msg)
+            #raise MasterError(msg)
 
     def _to_canoical_name(self, repo_name):
         config = self.configuration
@@ -59,36 +75,17 @@ class Master(object):
             log.info('cloning {0} to {1}'.format(repo, dst_dir))
             self._clone_hg_repo(repo, dst_dir)
 
-    def _make(self, cwd):
-        """calls make to create a buildbot master"""
-        log.info('creating master in {0}'.format(self.basedir))
-        config = self.configuration
-        make_cmd = config.get('master', 'make_cmd').splitlines()
-        # remove empty lines
-        make_cmd = [option for option in make_cmd if option]
-        log.debug('make command: {0}'.format(make_cmd))
-
-        for line in make(make_cmd, _cwd=cwd, _iter=True):
-            log.debug(line.strip())
-
     def start(self):
         """starts a master instance"""
-        make('start', _cwd=self.basedir)
+        sh.make('start', _cwd=self.basedir)
 
     def stop(self):
         """stops a master instance"""
-        make('stops', _cwd=self.basedir)
+        sh.make('stops', _cwd=self.basedir)
 
     def checkconfig(self):
         """checks master configuration"""
-        make('checkconfig', _cwd=self.basedir)
-
-    def write_master_json(self):
-        conf = self.configuration
-        src_json_ini = conf.get('master', 'src_json_ini')
-        dst_json = conf.get('master', 'dst_json')
-        mj = MasterJson(self.configuration, src_json_ini)
-        mj.write(dst_json)
+        sh.make('checkconfig', _cwd=self.basedir)
 
     def _clone_hg_repo(self, name, dst_dir, branch='default'):
         try:
@@ -98,24 +95,66 @@ class Master(object):
             log.error(error)
             raise MasterError(error)
 
-
-class MasterJson(object):
-    def __init__(self, configuration, src_ini_file):
-        self.section = 'master_json'
-        config = duplicate(configuration)
-        config.read(src_ini_file)
-        self.configuration = config
-
-    def _limit_keys(self):
-        limits = []
+    def virtualenv(self):
         conf = self.configuration
-        for limit in conf.get(self.section, 'limit_keys').split(','):
-            if limit:
-                limits.append(conf._sections[limit])
-        return limits
+        extra_args = conf.get('master', 'virtualenv_extra_args').split(',')
+        venv = Virtualenv(conf)
+        venv.create(self.basedir, extra_args)
+        self.venv = venv
 
-    def write(self, dst):
-        # json file == this section + limit branches
-        # just a work in progress
+    def deps(self):
         conf = self.configuration
-        print conf
+        req = conf.get('master', 'virtualenv_requirements').split(',')
+        req = [line.strip() for line in req]
+        venv = self.venv
+        venv.install_dependencies(req)
+        # Get buildbotcustom and the build/tools library into PYTHONPATH
+
+    def install_buildbot(self):
+        self._clone_repositories()
+        self._generate_master_json()
+        #$(VIRTUALENV_PYTHON) setup.py develop install
+        conf = self.configuration
+        args = conf.get('master', 'buildbot_install').split(',')
+        args = [option.strip() for option in args]
+        setup_py = conf.get('master', 'setup_py')
+        venv = self.venv
+        venv.setup_py(setup_py, args)
+
+        # ln -sf $(BASEDIR)/buildbotcustom $(SITE_PACKAGES)/buildbotcustom
+        site_packages = conf.get('master', 'site_packages')
+        src_dir = conf.get('master', 'buildbotcustom_dir')
+        dst_dir = os.path.join(site_packages, 'buildbotcustom')
+        self._link(src_dir, dst_dir)
+
+        # echo $BASEDIR/tools/lib/python > SITE_PACKAGES/build-tools-lib.pth
+        pth_file = conf.get('master', 'pth_file')
+        tools_python = conf.get('master', 'tools_python')
+        with open(pth_file, 'a') as p_file:
+            p_file.write(tools_python)
+
+    def _link(self, src, dst):
+        """creates a symlink and logs the operation."""
+        # add windows support?
+        # this should be a function not a method, create a base lib
+        log.debug('creating symlink: {0} => {1}'.format(src, dst))
+        os.link(src, dst)
+
+    def _generate_master_json(self):
+        """creates master.json file"""
+        conf = self.configuration
+        json_template = conf.get('master', 'json_template')
+        json_file = conf.get('master', 'dst_json')
+        out_json = []
+        with open(json_template, 'r') as json_in:
+            for line in json_in:
+                if '@' in line:
+                    pre, sep, post = line.partition('@')
+                    option = post.partition('@')[0]
+                    value = conf.get('master', option.lower())
+                    line = line.replace('@{0}@'.format(option), value)
+                    out_json.append(line.strip())
+
+        with open(json_file, 'w') as json_out:
+            for line in out_json:
+                json_out.write(line)
