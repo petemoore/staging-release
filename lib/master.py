@@ -33,6 +33,7 @@ class Master(object):
         self.master()
 
     def master(self):
+        """make master target"""
         config = self.configuration
         cmd = config.get('master', 'create_master').split(',')
         cmd = [line.strip() for line in cmd]
@@ -47,15 +48,18 @@ class Master(object):
         """creates required directories
            rises a MasterError if directories are already in place."""
         # If a directory already exists, probably
-        # this has already been executed
+        # this script has already been executed
         try:
             os.makedirs(self.basedir)
         except OSError as error:
             msg = 'Cannot create: {0} ({1})'.format(self.basedir, error)
             log.debug(msg)
-            #raise MasterError(msg)
+            raise MasterError(msg)
 
     def _to_canoical_name(self, repo_name):
+        """transforms user's repository name in standard repository names
+           e.g. tools-9999 => tools
+        """
         config = self.configuration
         bug = config.get('common', 'tracking_bug')
         bug = '-{0}'.format(bug)
@@ -88,6 +92,9 @@ class Master(object):
         sh.make('checkconfig', _cwd=self.basedir)
 
     def _clone_hg_repo(self, name, dst_dir, branch='default'):
+        """clone repository name to dst_dir
+           where name is a section name in configuration
+        """
         try:
             repo = Repository(self.configuration, name)
             repo.clone_locally(dst_dir, branch)
@@ -96,6 +103,7 @@ class Master(object):
             raise MasterError(error)
 
     def virtualenv(self):
+        """make virtualenv target"""
         conf = self.configuration
         extra_args = conf.get('master', 'virtualenv_extra_args').split(',')
         venv = Virtualenv(conf)
@@ -103,14 +111,15 @@ class Master(object):
         self.venv = venv
 
     def deps(self):
+        """make deps target"""
         conf = self.configuration
         req = conf.get('master', 'virtualenv_requirements').split(',')
         req = [line.strip() for line in req]
         venv = self.venv
         venv.install_dependencies(req)
-        # Get buildbotcustom and the build/tools library into PYTHONPATH
 
     def install_buildbot(self):
+        """make intall-buildbot target"""
         self._clone_repositories()
         self._generate_master_json()
         #$(VIRTUALENV_PYTHON) setup.py develop install
@@ -120,7 +129,7 @@ class Master(object):
         setup_py = conf.get('master', 'setup_py')
         venv = self.venv
         venv.setup_py(setup_py, args)
-
+        # Get buildbotcustom and the build/tools library into PYTHONPATH
         # ln -sf $(BASEDIR)/buildbotcustom $(SITE_PACKAGES)/buildbotcustom
         site_packages = conf.get('master', 'site_packages')
         src_dir = conf.get('master', 'buildbotcustom_dir')
@@ -141,7 +150,7 @@ class Master(object):
         os.link(src, dst)
 
     def _generate_master_json(self):
-        """creates master.json file"""
+        """creates master.json file from a template"""
         conf = self.configuration
         json_template = conf.get('master', 'json_template')
         json_file = conf.get('master', 'dst_json')
@@ -153,7 +162,7 @@ class Master(object):
                     option = post.partition('@')[0]
                     value = conf.get('master', option.lower())
                     line = line.replace('@{0}@'.format(option), value)
-                    out_json.append(line.strip())
+                out_json.append(line)
 
         with open(json_file, 'w') as json_out:
             for line in out_json:
