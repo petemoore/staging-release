@@ -102,5 +102,7 @@ class Virtualenv(object):
 
     def install_dependencies(self, dependencies):
         log.info('installing virtualenv dependencies')
+        if not isinstance(dependencies, list):
+            dependencies = [dependencies]
         for dependency in dependencies:
             self.install_dependency(dependency)

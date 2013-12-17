@@ -36,15 +36,16 @@ class Shipit(object):
            and install all the required packages
         """
         venv = Virtualenv(self.configuration)
-        self.activate_path = venv.activate_path
-        self.python_path = venv.python_path
         try:
             venv.create(self.basedir)
-            venv.install_requirements_from_file(self.requirements)
+            venv.install_dependencies(self.requirements)
         except VirtualenvError as error:
             msg = 'cannot create virtualenv: {0}'.format(error.message)
             log.error(msg)
             raise ShipitError(msg)
+
+        self.activate_path = venv._activate_path()
+        self.python_path = venv._python_path()
 
     def _clone(self, target_dir):
         """clones buildbot-configs into target_dir"""

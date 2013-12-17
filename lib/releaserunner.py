@@ -3,6 +3,7 @@ import os
 import sh
 import stat
 from lib.venv import Virtualenv, VirtualenvError
+from lib.repositories import Repository
 
 from lib.logger import logger
 log = logger(__name__)
@@ -17,7 +18,6 @@ class ReleaseRunner(object):
     """creates a release runner instance"""
     def __init__(self, configuration):
         self.basedir = configuration.get('release-runner', 'basedir')
-        self.repository = configuration.get('release-runner', 'repository')
         self.requirements = configuration.get('release-runner', 'requirements')
         self.requirements = self.requirements.split(',')
         self.configuration = configuration
@@ -34,14 +34,15 @@ class ReleaseRunner(object):
 
     def _clone(self, target_dir):
         """clones buildbot-configs into target_dir"""
-        log.info('cloning {0}'.format(self.repository))
-        hg_cmd = ('clone', self.repository, target_dir)
-        for line in sh.hg(hg_cmd, _iter=True):
-            log.debug(line.strip())
+        conf = self.configuration
+        repo = conf.get('release-runner', 'repository')
+        repo = Repository(conf, repo)
+        repo.clone_locally(target_dir)
 
     def _create_startup_file(self):
-        startup = self.configuration.get('release-runner', 'startup')
-        startup_path = self.configuration.get('release-runner', 'startup_path')
+        conf = self.configuration
+        startup = conf.get('release-runner', 'startup')
+        startup_path = conf.get('release-runner', 'startup_path')
         log.info('writing release runner startup file')
         with open(startup_path, 'w') as startup_script:
             startup_script.write('#!/bin/bash\n\n')
@@ -70,15 +71,15 @@ class ReleaseRunner(object):
            and install all the required packages
         """
         venv = Virtualenv(self.configuration)
-        self.activate_path = venv.activate_path
-        self.python_path = venv.python_path
         try:
             venv.create(self.basedir)
-            venv.install_requirements(self.requirements)
+            venv.install_dependencies(self.requirements)
         except VirtualenvError as error:
             msg = 'cannot create virtualenv: {0}'.format(error.message)
             log.error(msg)
             raise ReleaseRunnerError(msg)
+        self.activate_path = venv._activate_path()
+        self.python_path = venv._python_path()
 
     def start(self):
         """starts a release runner instance"""

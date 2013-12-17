@@ -40,8 +40,8 @@ if __name__ == '__main__':
         # disabled for now
         # repositories.prepare_user_repos()
         master.install()
-#        shipit.install()
-#        releaseR.install()
+        shipit.install()
+        releaseR.install()
     except RepositoryError as error:
         log.error('unable to create user repositories: {0}'.format(error))
     except MasterError as error:
