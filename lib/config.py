@@ -51,8 +51,32 @@ class Config(ConfigParser):
             for section in self.sections():
                 dst.write('[{0}]\n'.format(section))
                 for option in self.options(section):
-                    value = self.get(section, option)
-                    dst.write('{0}{1}{2}\n'.format(option, sep, value))
+                    values = self.get(section, option).split('\n')
+
+                    if len(values) > 1:
+                        # remove multiple \n
+                        # option =
+                        #    value
+                        #    value
+                        # generates:
+                        # option =
+                        #
+                        #    value
+                        #    value
+                        line = '{0} {1}'.format(option, sep).strip()
+                        line = '{0}\n'.format(line)
+                        dst.write(line)
+                        for value in values:
+                            # multiple lines, they must be indented
+                            # option =
+                            #    value\n
+                            #    value\n
+                            #    value\n
+                            dst.write('   {0}\n'.format(value))
+                    else:
+                        # single line
+                        # write option = value\n
+                        dst.write('{0} {1} {2}\n'.format(option, sep, values[0]))
 
     def _set_runtime_values(self):
         """this method collects all the values that should be
@@ -91,7 +115,8 @@ class Config(ConfigParser):
         shipit_base_port = int(self.get('port_ranges', 'shipit'))
         _ports = ports.available_in_range(shipit_base_port,
                                           shipit_base_port + port_range)
-        shipit_port = str(random.sample(_ports, 1))
+        # random.sample(_ports, 1) returns a list
+        shipit_port = str(random.sample(_ports, 1)[0])
         log.debug('shipit port: {0}'.format(shipit_port))
         self.set('shipit', 'port', shipit_port)
 

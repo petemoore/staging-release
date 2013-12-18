@@ -18,8 +18,10 @@ class Shipit(object):
     def __init__(self, configuration):
         self.repository = configuration.get('shipit', 'repository')
         self.basedir = configuration.get('shipit', 'basedir')
-        req = configuration.get('shipit', 'requirements')
-        self.requirements = os.path.join(self.basedir, req)
+        reqs = configuration.get('shipit', 'requirements')
+        # removing \n and empty lines
+        reqs = [req.strip() for req in reqs.split(',') if req]
+        self.requirements = reqs
         self.configuration = configuration
         self.activate_path = None
         self.python_path = None
@@ -58,15 +60,22 @@ class Shipit(object):
         startup = self.configuration.get('shipit', 'startup')
         startup_path = self.configuration.get('shipit', 'startup_path')
         log.info('writing ship it startup file')
+        conf = self.configuration
+        username = conf.get('shipit', 'user')
+        password = conf.get('shipit', 'password')
         with open(startup_path, 'w') as startup_script:
             startup_script.write('#!/bin/bash\n\n')
             startup_script.write('cd "$(dirname $0)"\n')
+            startup_script.write('echo "username: {0}"\n'.format(username))
+            startup_script.write('echo "password: {0}"\n'.format(password))
             startup_script.write('source {0}\n'.format(self.activate_path))
             startup_script.write("{0} {1}\n".format(self.python_path, startup))
 
         # log the new file
+        log.debug('shipit startup file')
         with open(startup_path, 'r') as startup_script:
-            log.debug(startup_script)
+            for line in startup_script:
+                log.debug(line.strip())
 
         # make it executable (the hard way)
         st = os.stat(startup_path)

@@ -37,8 +37,7 @@ if __name__ == '__main__':
     releaseR = ReleaseRunner(config)
     repositories = Repositories(config)
     try:
-        # disabled for now
-        # repositories.prepare_user_repos()
+        repositories.prepare_user_repos()
         master.install()
         shipit.install()
         releaseR.install()

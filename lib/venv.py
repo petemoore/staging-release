@@ -105,4 +105,5 @@ class Virtualenv(object):
         if not isinstance(dependencies, list):
             dependencies = [dependencies]
         for dependency in dependencies:
+            log.debug('virtualenv installing {0}'.format(dependency))
             self.install_dependency(dependency)
