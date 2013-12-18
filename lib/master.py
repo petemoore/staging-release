@@ -133,7 +133,7 @@ class Master(object):
         # Get buildbotcustom and the build/tools library into PYTHONPATH
         # ln -sf $(BASEDIR)/buildbotcustom $(SITE_PACKAGES)/buildbotcustom
         site_packages = conf.get('master', 'site_packages')
-        src_dir = conf.get('master', 'buildbotcustom_dir')
+        src_dir = conf.get('master', 'buildbot_configs_dir')
         dst_dir = os.path.join(site_packages, 'buildbotcustom')
         self._link(src_dir, dst_dir)
 
