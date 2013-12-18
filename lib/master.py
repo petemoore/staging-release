@@ -31,6 +31,7 @@ class Master(object):
         self.deps()
         self.install_buildbot()
         self.master()
+        self.master_makefile()
 
     def master(self):
         """make master target"""
@@ -142,12 +143,21 @@ class Master(object):
         with open(pth_file, 'a') as p_file:
             p_file.write(tools_python)
 
+    def master_makefile(self):
+        """make master-makefile"""
+        #ln -sf $(BASEDIR)/buildbot-configs/Makefile.master $(BASEDIR)/Makefile
+        conf = self.configuration
+        src = conf.get('master', 'buildbotcustom_dir')
+        src = os.path.join(src, 'Makefile.master')
+        dst = os.path.join(self.basedir, 'Makefile')
+        self._link(src, dst)
+
     def _link(self, src, dst):
         """creates a symlink and logs the operation."""
         # add windows support?
         # this should be a function not a method, create a base lib
         log.debug('creating symlink: {0} => {1}'.format(src, dst))
-        os.link(src, dst)
+        os.symlink(src, dst)
 
     def _generate_master_json(self):
         """creates master.json file from a template"""
