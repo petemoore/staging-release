@@ -133,7 +133,7 @@ class Master(object):
         # Get buildbotcustom and the build/tools library into PYTHONPATH
         # ln -sf $(BASEDIR)/buildbotcustom $(SITE_PACKAGES)/buildbotcustom
         site_packages = conf.get('master', 'site_packages')
-        src_dir = conf.get('master', 'buildbot_configs_dir')
+        src_dir = conf.get('master', 'buildbotcustom_dir')
         dst_dir = os.path.join(site_packages, 'buildbotcustom')
         self._link(src_dir, dst_dir)
 
@@ -147,7 +147,7 @@ class Master(object):
         """make master-makefile"""
         #ln -sf $(BASEDIR)/buildbot-configs/Makefile.master $(BASEDIR)/Makefile
         conf = self.configuration
-        src = conf.get('master', 'buildbotcustom_dir')
+        src = conf.get('master', 'buildbot_configs_dir')
         src = os.path.join(src, 'Makefile.master')
         dst = os.path.join(self.basedir, 'Makefile')
         self._link(src, dst)
