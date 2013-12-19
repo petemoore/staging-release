@@ -33,13 +33,40 @@ class Config(ConfigParser):
     """this class manages the configuration"""
     def __init__(self):
         ConfigParser.__init__(self, interpolation=ExtendedInterpolation())
+        self.skip_validation = False
+
+    def get(self, section, option):
+        try:
+            return super(ConfigParser, self).get(section, option)
+        except Exception as error:
+            raise ConfigError(error)
+
+    def set(self, section, option, value):
+        try:
+            super(ConfigParser, self).set(section, option, value)
+        except Exception as error:
+            raise ConfigError(error)
 
     def read_from(self, filenames):
         """reads the configuration from a file or a list of files
            and then generates some runtime specific values
            as (ports, passwords,..)"""
         self.read(filenames)
+        self.validate()
         self._set_runtime_values()
+
+    def validate(self):
+        """validates a configuration.
+           to skip the validation step, set self.skip_validation to True
+        """
+        if self.skip_validation:
+            return
+
+        for section in ('common', ):
+            if not self.has_section(section):
+                msg = 'bad configuration file,'
+                msg = '{0} missing section {1}'.format(msg, section)
+                raise ConfigError(msg)
 
     def write_to(self, filename, sep='='):
         """this method writes interpolated values to a file.
@@ -173,9 +200,3 @@ class Config(ConfigParser):
                 msg = "{0}{1}={2}\n".format(msg, option,
                                             self.get(section, option))
         return msg
-
-
-def duplicate(configuration):
-    conf = Config()
-    conf.read_dict(configuration)
-    return conf
