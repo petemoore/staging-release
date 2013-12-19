@@ -7,7 +7,7 @@ import random
 import string
 import lib.ports as ports
 from lib.which import which
-from configparser import ConfigParser, ExtendedInterpolation
+import configparser
 
 from lib.logger import logger
 log = logger(__name__)
@@ -21,30 +21,39 @@ def get_username():
 
 
 def generate_random_password(size=8):
+    """generates a random sequence of digit and upper case letter.
+       size, controls password length.
+    """
     chars = string.ascii_uppercase + string.digits
     return ''.join(random.choice(chars) for x in range(size))
 
 
 class ConfigError(Exception):
+    """Generic configuration error"""
     pass
 
 
-class Config(ConfigParser):
+class Config(configparser.ConfigParser):
     """this class manages the configuration"""
     def __init__(self):
-        ConfigParser.__init__(self, interpolation=ExtendedInterpolation())
+        configparser.ConfigParser.__init__(
+            self,
+            interpolation=configparser.ExtendedInterpolation()
+        )
         self.skip_validation = False
 
     def get(self, section, option):
         try:
-            return super(ConfigParser, self).get(section, option)
+            return super(Config, self).get(section, option)
         except Exception as error:
+            log.debug(error)
             raise ConfigError(error)
 
-    def set(self, section, option, value):
+    def set(self, section, option, value=None):
         try:
-            super(ConfigParser, self).set(section, option, value)
-        except Exception as error:
+            super(Config, self).set(section, option, value)
+        except (configparser.NoSectionError, TypeError) as error:
+            log.debug(error)
             raise ConfigError(error)
 
     def read_from(self, filenames):
@@ -52,17 +61,17 @@ class Config(ConfigParser):
            and then generates some runtime specific values
            as (ports, passwords,..)"""
         self.read(filenames)
-        self.validate()
+        self._validate()
         self._set_runtime_values()
 
-    def validate(self):
+    def _validate(self):
         """validates a configuration.
            to skip the validation step, set self.skip_validation to True
         """
         if self.skip_validation:
             return
 
-        for section in ('common', ):
+        for section in ('common', 'shipit', 'port_ranges', 'master'):
             if not self.has_section(section):
                 msg = 'bad configuration file,'
                 msg = '{0} missing section {1}'.format(msg, section)
@@ -78,7 +87,8 @@ class Config(ConfigParser):
             for section in self.sections():
                 dst.write('[{0}]\n'.format(section))
                 for option in self.options(section):
-                    values = self.get(section, option).split('\n')
+                    values = self.get(section, option)
+                    values = values.split('\n')
 
                     if len(values) > 1:
                         # remove multiple \n
@@ -103,7 +113,8 @@ class Config(ConfigParser):
                     else:
                         # single line
                         # write option = value\n
-                        dst.write('{0} {1} {2}\n'.format(option, sep, values[0]))
+                        line = '{0} {1} {2}\n'.format(option, sep, values[0])
+                        dst.write(line)
 
     def _set_runtime_values(self):
         """this method collects all the values that should be
