@@ -42,9 +42,9 @@ class Config(configparser.ConfigParser):
         )
         self.skip_validation = False
 
-    def get(self, section, option):
+    def get(self, section, option, **_3to2kwargs):
         try:
-            return super(Config, self).get(section, option)
+            return super(Config, self).get(section, option, **_3to2kwargs)
         except Exception as error:
             log.debug(error)
             raise ConfigError(error)
