@@ -36,7 +36,7 @@ class Master(object):
     def master(self):
         """make master target"""
         config = self.configuration
-        cmd = config.get('master', 'create_master').split(',')
+        cmd = config.get_list('master', 'create_master')
         cmd = [line.strip() for line in cmd]
         cwd = os.path.join(self.basedir, 'buildbot-configs')
         script = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE)
@@ -73,7 +73,7 @@ class Master(object):
     def _clone_repositories(self):
         """clones buildbot-configs"""
         config = self.configuration
-        repos = config.get('master', 'repositories').split(',')
+        repos = config.get_list('master', 'repositories')
         for repo in repos:
             dst_dir = os.path.join(self.basedir,
                                    self._to_canoical_name(repo))
@@ -106,7 +106,7 @@ class Master(object):
     def virtualenv(self):
         """make virtualenv target"""
         conf = self.configuration
-        extra_args = conf.get('master', 'virtualenv_extra_args').split(',')
+        extra_args = conf.get_list('master', 'virtualenv_extra_args')
         venv = Virtualenv(conf)
         venv.create(self.basedir, extra_args)
         self.venv = venv
@@ -114,7 +114,7 @@ class Master(object):
     def deps(self):
         """make deps target"""
         conf = self.configuration
-        req = conf.get('master', 'virtualenv_requirements').split(',')
+        req = conf.get_list('master', 'virtualenv_requirements')
         req = [line.strip() for line in req]
         venv = self.venv
         venv.install_dependencies(req)
@@ -125,7 +125,7 @@ class Master(object):
         self._generate_master_json()
         #$(VIRTUALENV_PYTHON) setup.py develop install
         conf = self.configuration
-        args = conf.get('master', 'buildbot_install').split(',')
+        args = conf.get_list('master', 'buildbot_install')
         args = [option.strip() for option in args]
         setup_py = conf.get('master', 'setup_py')
         venv = self.venv

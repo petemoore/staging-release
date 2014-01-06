@@ -18,8 +18,8 @@ class ReleaseRunner(object):
     """creates a release runner instance"""
     def __init__(self, configuration):
         self.basedir = configuration.get('release-runner', 'basedir')
-        self.requirements = configuration.get('release-runner', 'requirements')
-        self.requirements = self.requirements.split(',')
+        self.requirements = configuration.get_list('release-runner',
+                                                   'requirements')
         self.configuration = configuration
         self.activate_path = None
         self.python_path = None

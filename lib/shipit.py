@@ -18,10 +18,7 @@ class Shipit(object):
     def __init__(self, configuration):
         self.repository = configuration.get('shipit', 'repository')
         self.basedir = configuration.get('shipit', 'basedir')
-        reqs = configuration.get('shipit', 'requirements')
-        # removing \n and empty lines
-        reqs = [req.strip() for req in reqs.split(',') if req]
-        self.requirements = reqs
+        self.requirements = configuration.get_list('shipit', 'requirements')
         self.configuration = configuration
         self.activate_path = None
         self.python_path = None

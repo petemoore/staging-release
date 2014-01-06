@@ -16,7 +16,7 @@ class Virtualenv(object):
         self.basedir = None
         self.executable = None
         self.configuration = configuration
-        self.binaries = configuration.get('virtualenv', 'binaries').split(',')
+        self.binaries = configuration.get_list('virtualenv', 'binaries')
         self.virtualenv = configuration.get('virtualenv', 'virtualenv')
 
     def _executable(self):

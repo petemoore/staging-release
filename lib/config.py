@@ -49,6 +49,15 @@ class Config(configparser.ConfigParser):
             log.debug(error)
             raise ConfigError(error)
 
+    def get_list(self, section, option, **_3to2kwargs):
+        """same as get() but returns a list instead of elements
+           separated by ','
+           It also removes new lines chars
+        """
+        values = self.get(section, option, **_3to2kwargs).split(',')
+        # removing new and empty lines
+        return [value.strip() for value in values if value]
+
     def set(self, section, option, value=None):
         try:
             super(Config, self).set(section, option, value)
