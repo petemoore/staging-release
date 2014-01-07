@@ -3,9 +3,8 @@
 #https://wiki.mozilla.org/ReleaseEngineering/How_To/Setup_Personal_Development_Master#Create_a_build_master
 import os
 from lib.config import Config
-from lib.master import Master, MasterError
-from lib.shipit import Shipit, ShipitError
-from lib.releaserunner import ReleaseRunner, ReleaseRunnerError
+from lib.repositories import Repositories, RepositoryError
+from lib.patch import Patch, PatchError
 from lib.logger import logger
 import argparse
 
@@ -31,17 +30,13 @@ if __name__ == '__main__':
     if args.username:
         config.set('common', 'username', args.username)
     log.debug(config)
-    master = Master(config)
-    shipit = Shipit(config)
-    releaseR = ReleaseRunner(config)
     relese_type = config.get_list('common', 'staging_release')
+    patch = Patch(config, relese_type)
+    repositories = Repositories(config)
     try:
-        master.install()
-        shipit.install()
-        releaseR.install()
-    except MasterError as error:
-        log.error('unable to install buildbot master: {0}'.format(error))
-    except ShipitError as error:
-        log.error('unable to install shipit: {0}'.format(error))
-    except ReleaseRunnerError as error:
-        log.error('unable to install release runner: {0}'.format(error))
+        repositories.prepare_user_repos()
+        patch.fix('buildbot-configs')
+    except PatchError as error:
+        log.error('unable to patch user repositories: {0}'.format(error))
+    except RepositoryError as error:
+        log.error('unable to create user repositories: {0}'.format(error))
