@@ -6,9 +6,7 @@ repositories are not deleted.
 Please not that this module can be very dangerous
 """
 
-from lib.logger import logger
-log = logger(__name__)
-
+import os
 import sh
 
 from lib.logger import logger
@@ -94,6 +92,44 @@ class Repository(object):
             log.debug(msg)
             raise RepositoryError('clone failed')
 
+    def commit(self, commit_message):
+        try:
+            cmd = ('commit', '-m', commit_message)
+            for line in sh.hg(cmd, _cwd=self.local_checkout_dir):
+                log.debug(line.strip())
+        except sh.ErrorReturnCode as error:
+            msg = 'commit failed: {0}'.format(error)
+            raise RepositoryError(msg)
+
+    def _update_hgrc(self):
+        conf = self.configuration
+        repo = conf.get(self.name, 'repo')
+        # hg push needs ssh
+        # (replacing https:|http: with ssh:)
+        repo = repo.replace('https:', 'ssh:')
+        repo = repo.replace('http:', 'ssh:')
+        hg_rc = os.path.join(self.local_checkout_dir, '.hg', 'hgrc')
+        default_push = 'default-push = {0}'.format(repo)
+        log.debug('adding: {0} in {1}'.format(default_push, hg_rc))
+        with open(hg_rc, 'a') as hgrc:
+            hgrc.write(default_push)
+            hgrc.write('\n')
+
+    def push(self):
+        self._update_hgrc()
+        try:
+            # logging what is about to be pushed
+            cmd = ('out', '-p', '--color', 'never')
+            for line in sh.hg(cmd, _cwd=self.local_checkout_dir):
+                log.debug(line.strip())
+            # and now log the push command
+            for line in sh.hg('push', _cwd=self.local_checkout_dir):
+                log.debug(line.strip())
+        except sh.ErrorReturnCode as error:
+            msg = 'push failed: {0}'.format(error)
+            log.debug(msg)
+            raise RepositoryError(msg)
+
 
 class Repositories(Exception):
     def __init__(self, configuration):
@@ -127,5 +163,3 @@ def to_mozilla(self, repo_name, tracking_bug):
         name = name.partition(bug)[0]
     log.debug('canonical name: {0} => {1}'.format(repo_name, name))
     return name
-
-

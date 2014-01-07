@@ -1,6 +1,5 @@
 """Updates user's repository configuration files"""
 
-import sh
 import os
 import shutil
 import tempfile
@@ -70,12 +69,15 @@ class Patch(object):
         conf = self.configuration
         commit_msg = conf.get('patch', 'commit_message')
         log.info('committing local changes')
-        sh.hg('commit', '-m', commit_msg, _cwd=self.dst_dir)
+        repo = self.repository
+        repo.commit(commit_msg)
 
     def _create_temp_dir(self):
         self.dst_dir = tempfile.mkdtemp()
+        log.debug('created temp dir: {0}'.format(self.dst_dir))
 
     def _delete_temp_dir(self):
+        log.debug('deleting temp dir: {0}'.format(self.dst_dir))
         try:
             shutil.rmtree(self.dst_dir)
         except Exception as error:
@@ -85,6 +87,9 @@ class Patch(object):
 
     def push_changes(self):
         log.info('pushing changes to remote')
+        repo = self.repository
+        repo.push()
+        self._delete_temp_dir()
 
     def _files_to_update(self):
         config = self.configuration
