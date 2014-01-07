@@ -6,6 +6,7 @@ from lib.config import Config
 from lib.repositories import Repositories, RepositoryError
 from lib.master import Master, MasterError
 from lib.shipit import Shipit, ShipitError
+from lib.patch import Patch, PatchError
 from lib.releaserunner import ReleaseRunner, ReleaseRunnerError
 from lib.logger import logger
 import argparse
@@ -35,12 +36,17 @@ if __name__ == '__main__':
     master = Master(config)
     shipit = Shipit(config)
     releaseR = ReleaseRunner(config)
+    relese_type = config.get_list('common', 'staging_release')
+    patch = Patch(config, relese_type)
     repositories = Repositories(config)
     try:
 #        repositories.prepare_user_repos()
-        master.install()
-        shipit.install()
-        releaseR.install()
+        patch.fix('buildbot-configs')
+#        master.install()
+#        shipit.install()
+#        releaseR.install()
+    except PatchError as error:
+        log.error('unable to patch user repositories: {0}'.format(error))
     except RepositoryError as error:
         log.error('unable to create user repositories: {0}'.format(error))
     except MasterError as error:

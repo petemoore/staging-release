@@ -107,3 +107,25 @@ class Repositories(Exception):
             repo = Repository(conf, repo)
             repo.delete_user_repo()
             repo.create_repo()
+
+
+def to_user_repo(self, repo_name, tracking_bug):
+    """transforms mozilla's (build) repository to user's repo
+        e.g. tools => tools-9999
+    """
+    return '{0}-{1}'.format(repo_name, tracking_bug)
+
+
+def to_mozilla(self, repo_name, tracking_bug):
+    """transforms user's repository name in mozilla repository names
+        e.g. build/tools-9999 => tools
+        e.g. h.m.o/build/tools-9999 => tools
+    """
+    bug = '-{0}'.format(tracking_bug)
+    name = repo_name.split('/')[-1]
+    if name.endswith(tracking_bug):
+        name = name.partition(bug)[0]
+    log.debug('canonical name: {0} => {1}'.format(repo_name, name))
+    return name
+
+
