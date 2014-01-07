@@ -1,5 +1,6 @@
 """Updates user's repository configuration files"""
 
+import sh
 import os
 import shutil
 import tempfile
@@ -38,7 +39,7 @@ class Patch(object):
         username = conf.get('common', 'username')
         bug = conf.get('common', 'tracking_bug')
         repo_names = conf.options('repositories')
-        repos = repositories_map(repo_names, username, bug)
+        repos = patch_map(repo_names, username, bug)
         tokens = self.tokens
         log.debug('tokens: {0}'.format(tokens))
         for repo in repos:
@@ -46,7 +47,7 @@ class Patch(object):
             mozilla_repo, user_repo = repos[repo]
             for conf_in in files:
                 # in every file...
-                log.info('patching: {0}'.format(conf_in))
+                log.debug('patching: {0}'.format(conf_in))
                 out = []
                 with open(conf_in, 'r') as f_in:
                     for line in f_in:
@@ -66,7 +67,10 @@ class Patch(object):
                         out_f.write(line)
 
     def commit_changes(self):
+        conf = self.configuration
+        commit_msg = conf.get('patch', 'commit_message')
         log.info('committing local changes')
+        sh.hg('commit', '-m', commit_msg, _cwd=self.dst_dir)
 
     def _create_temp_dir(self):
         self.dst_dir = tempfile.mkdtemp()
@@ -113,7 +117,7 @@ class Patch(object):
         self.push_changes()
 
 
-def repositories_map(repository_names, username, tracking_bug):
+def patch_map(repository_names, username, tracking_bug):
     """Creates a map of the mozilla repo <-> user repo names"""
     my_map = {}
     for repo in repository_names:
@@ -124,4 +128,8 @@ def repositories_map(repository_names, username, tracking_bug):
     # replace stage-ffxbld -> username_mozilla.com
     my_map['stage-ffxbld'] = ('users/stage-ffxbld',
                               'users/{0}_mozilla.com'.format(username))
+    # optimizations:
+    # increase the number of chunks
+    my_map['number_of_chunks'] = ("releaseConfig['l10nChunks']          = 2",
+                                  "releaseConfig['l10nChunks']          = 6")
     return my_map
