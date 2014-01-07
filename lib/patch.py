@@ -48,22 +48,22 @@ class Patch(object):
                 # in every file...
                 log.info('patching: {0}'.format(conf_in))
                 out = []
-                f_in = open(conf_in, 'r')
-                for line in f_in:
-                    for token in tokens:
-                        if mozilla_repo in line and not 'raw-file' in line:
-                            log.debug(line)
-                            log.debug('{0} => {1}'.format(mozilla_repo,
-                                                          user_repo))
-                            line = line.replace(mozilla_repo, user_repo)
-                            log.debug(line)
-                    out.append(line)
-                f_in.close()
-            # write file before
-            log.debug('writing changes to: {0}'.format(conf_in))
-            with open(conf_in, 'w') as out_f:
-                for line in out:
-                    out_f.write(line)
+                with open(conf_in, 'r') as f_in:
+                    for line in f_in:
+                        for token in tokens:
+                            if mozilla_repo in line and not 'raw-file' in line:
+                                log.debug(line)
+                                log.debug('{0} => {1}'.format(mozilla_repo,
+                                                              user_repo))
+                                line = line.replace(mozilla_repo, user_repo)
+                                log.debug(line)
+                        out.append(line)
+
+                # write file before
+                log.debug('writing changes to: {0}'.format(conf_in))
+                with open(conf_in, 'w') as out_f:
+                    for line in out:
+                        out_f.write(line)
 
     def commit_changes(self):
         log.info('committing local changes')
@@ -111,24 +111,6 @@ class Patch(object):
         self.update_configs()
         self.commit_changes()
         self.push_changes()
-
-
-def make_user_repo(line, tracking_bug):
-    sep = 'build/'
-    quote = "'"
-    if sep in line:
-        pre, sep, post = line.partition(sep)
-        #'config_repo_path': 'build/buildbot-configs'
-        #<       pre        >|<sep>|<      post     >
-        if quote in pre:
-            # values are single quote separated
-            pass
-        else:
-            # values are double quote separated
-            quote = '"'
-        repo_name, sep, post = post.partition(quote)
-        repo_name = '{0}-{1}{2}'.format(repo_name, tracking_bug, post)
-        return '{0}/user/{_mozilla.org'
 
 
 def repositories_map(repository_names, username, tracking_bug):
