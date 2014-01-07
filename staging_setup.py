@@ -40,11 +40,11 @@ if __name__ == '__main__':
     patch = Patch(config, relese_type)
     repositories = Repositories(config)
     try:
-#        repositories.prepare_user_repos()
+        repositories.prepare_user_repos()
         patch.fix('buildbot-configs')
-#        master.install()
-#        shipit.install()
-#        releaseR.install()
+        master.install()
+        shipit.install()
+        releaseR.install()
     except PatchError as error:
         log.error('unable to patch user repositories: {0}'.format(error))
     except RepositoryError as error:
