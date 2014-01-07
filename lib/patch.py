@@ -122,6 +122,6 @@ def repositories_map(repository_names, username, tracking_bug):
                                                                repo,
                                                                tracking_bug))
     # replace stage-ffxbld -> username_mozilla.com
- #   my_map['stage-ffxbld'] = ('users/stage-ffxbld',
- #                             'users/{0}_mozilla.com'.format(username))
+    my_map['stage-ffxbld'] = ('users/stage-ffxbld',
+                              'users/{0}_mozilla.com'.format(username))
     return my_map
