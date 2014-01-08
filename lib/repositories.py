@@ -74,10 +74,12 @@ class Repository(object):
             log.error(msg)
             raise RepositoryError(msg)
 
-    def clone_locally(self, dst_dir, branch='default'):
+    def clone_locally(self, dst_dir, branch='default', clone_from='mozilla'):
         """clones the repo into dst_dir"""
         conf = self.configuration
-        repo = conf.get(self.name, 'repo')
+        repo = conf.get(self.name, 'mozilla_repo')
+        if repo != 'mozilla':
+            repo = conf.get(self.name, 'user_repo')
         cmd = ('clone', repo, dst_dir)
         log.debug('running sh {0}'.format(' '.join(cmd)))
         self.local_checkout_dir = dst_dir
@@ -102,18 +104,17 @@ class Repository(object):
             raise RepositoryError(msg)
 
     def _update_hgrc(self):
-        conf = self.configuration
-        repo = conf.get(self.name, 'repo')
-        # hg push needs ssh
-        # (replacing https:|http: with ssh:)
-        repo = repo.replace('https:', 'ssh:')
-        repo = repo.replace('http:', 'ssh:')
         hg_rc = os.path.join(self.local_checkout_dir, '.hg', 'hgrc')
-        default_push = 'default-push = {0}'.format(repo)
-        log.debug('adding: {0} in {1}'.format(default_push, hg_rc))
-        with open(hg_rc, 'a') as hgrc:
-            hgrc.write(default_push)
-            hgrc.write('\n')
+        import configparser
+        hgrc = configparser.ConfigParser()
+        hgrc.read(hg_rc)
+        default_push = hgrc.get('paths', 'default')
+        # replace https or http with ssh
+        default_push = default_push.replace('https:', 'ssh:')
+        default_push = default_push.replace('http:', 'ssh:')
+        hgrc.set('paths', 'default-push', default_push)
+        with open(hg_rc, 'wb') as configfile:
+            hgrc.write(configfile)
 
     def push(self):
         self._update_hgrc()

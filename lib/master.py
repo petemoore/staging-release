@@ -57,7 +57,7 @@ class Master(object):
             log.debug(msg)
             raise MasterError(msg)
 
-    def _to_canoical_name(self, repo_name):
+    def _to_canonical_name(self, repo_name):
         """transforms user's repository name in standard repository names
            e.g. tools-9999 => tools
         """
@@ -76,7 +76,7 @@ class Master(object):
         repos = config.get_list('master', 'repositories')
         for repo in repos:
             dst_dir = os.path.join(self.basedir,
-                                   self._to_canoical_name(repo))
+                                   self._to_canonical_name(repo))
             log.info('cloning {0} to {1}'.format(repo, dst_dir))
             self._clone_hg_repo(repo, dst_dir)
 
@@ -96,9 +96,11 @@ class Master(object):
         """clone repository name to dst_dir
            where name is a section name in configuration
         """
+        conf = self.configuration
         try:
-            repo = Repository(self.configuration, name)
-            repo.clone_locally(dst_dir, branch)
+            repo = Repository(conf, name)
+            clone_from = conf.get('master', 'clone_from')
+            repo.clone_locally(dst_dir, branch, clone_from)
         except RepositoryError as error:
             log.error(error)
             raise MasterError(error)
