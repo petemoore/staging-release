@@ -158,6 +158,11 @@ class Config(configparser.ConfigParser):
 
     def _set_shipit_port(self):
         """finds an empty port for shipit"""
+        shipit_port = self.get('shipit', 'port')
+        if shipit_port:
+            log.debug('shipit port: {0}'.format(shipit_port))
+            return
+        log.debug('shipit port is not defined, finding a random port.')
         port_range = int(self.get('port_ranges', 'range_size'))
         shipit_base_port = int(self.get('port_ranges', 'shipit'))
         _ports = ports.available_in_range(shipit_base_port,
@@ -169,8 +174,15 @@ class Config(configparser.ConfigParser):
 
     def _set_master_ports(self):
         """finds three random ports for master (pb, ssh and http)"""
-        # right now:
-        # http port is in range 8000-8999
+        # assuming that if http port is set, ssh and pb base ports are set too
+
+        http_port = self.get('master', 'http_port')
+        if http_port:
+            log.debug("http port is set, ssh and pb base ports are set too")
+            return
+        # ports are not set so we need to pick up a random ports
+        # this is the algorithm
+        # (usually) http port is in range 8000-8999
         # ssh port == http_port - 1000
         # pb_port == http_poer + 1000
         port_range = int(self.get('port_ranges', 'range_size'))
