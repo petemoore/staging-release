@@ -9,6 +9,7 @@ Please not that this module can be very dangerous
 import os
 from sh import ssh, hg
 from sh import ErrorReturnCode_1, ErrorReturnCode
+from lib.locales import get_shipped_locales, NoLocalesError
 import shutil
 import tempfile
 
@@ -18,6 +19,48 @@ log = logger(__name__)
 
 class RepositoryError(Exception):
     """Generic Repository Eerror"""
+
+
+class LocaleRepository(object):
+    """manages locale repository"""
+    def __init__(self, locale):
+        self.locale = locale
+
+    def _exec_ssh_cmd(self, cmd, ignore_exit_code_1=False):
+        try:
+            for line in ssh(cmd, _iter=True):
+                log.debug(line.strip())
+        except ErrorReturnCode_1:
+            if ignore_exit_code_1:
+                log.debug('ignoring exit code = 1')
+            else:
+                msg = 'error executing {0}'.format(' '.join(cmd))
+                log.debug(msg)
+                raise RepositoryError(msg)
+        except ErrorReturnCode:
+            log.debug(msg)
+            raise RepositoryError(msg)
+
+    def delete(self):
+        locale = self.locale
+        log.debug('deleting user repository {0}'.format(locale))
+        cmd = ("hg.mozilla.org", "edit", locale,  "delete", "YES")
+        log.debug('cmd: {0}'.format(' '.join(cmd)))
+        try:
+            self._exec_ssh_cmd(cmd, ignore_exit_code_1=True)
+        except RepositoryError:
+            log.debug('failed to delete user repository: {0}'.format(locale))
+
+    def create(self):
+        locale = self.locale
+        log.debug('creating user repository {0}'.format(locale))
+        cmd = ('hg.mozilla.org', 'clone',
+               locale, 'l10n-central/{0}'.format(locale))
+        log.debug('cmd: {0}'.format(' '.join(cmd)))
+        try:
+            self._exec_ssh_cmd(cmd)
+        except RepositoryError:
+            log.debug('failed to clone {0}'.format(locale))
 
 
 class Repository(object):
@@ -41,21 +84,23 @@ class Repository(object):
         conf = self.configuration
         src_repo_name = conf.get(self.name, 'src_repo_name')
         dst_repo_name = conf.get(self.name, 'dst_repo_name')
-        if not dst_repo_name.endswith(self.bug):
-            msg = "cowardly refusing to clone {0}".format(dst_repo_name)
-            msg = "{0}, its name does not end with {1}".format(msg, self.bug)
-            log.error(msg)
-            raise RepositoryError(msg)
+#        if not dst_repo_name.endswith(self.bug):
+#            msg = "cowardly refusing to clone {0}".format(dst_repo_name)
+#            msg = "{0}, its name does not end with {1}".format(msg, self.bug)
+#            log.error(msg)
+#            raise RepositoryError(msg)
+        # added more robust check on pushing rather than cloning...
+
         cmd = ('hg.mozilla.org', 'clone', dst_repo_name,  src_repo_name)
         log.info('cloning {0} to {1}'.format(src_repo_name, dst_repo_name))
         log.debug('running ssh {0}'.format(' '.join(cmd)))
         ssh(cmd)
 
-    def delete_user_repo(self):
+    def delete_user_repo(self, i_am_brave=False):
         """delete user's remote repository"""
         conf = self.configuration
         dst_repo_name = conf.get(self.name, 'dst_repo_name')
-        if not dst_repo_name.endswith(self.bug):
+        if not dst_repo_name.endswith(self.bug) and not i_am_brave:
             msg = "cowardly refusing to delete {0}".format(dst_repo_name)
             msg = "{0}, its name does not end with {1}".format(msg, self.bug)
             log.error(msg)
@@ -114,9 +159,8 @@ class Repository(object):
         hgrc.read(hg_rc)
         default = str(hgrc.get('paths', 'default'))
         # DO NOT PUSH TO hg.m.o/build/<repo>
-        if 'hg.mozilla.com/build' in default or \
-           'hg.mozilla.org/build' in default:
-            msg = 'cowardly refusing to push to hg.m.o/build'
+        if 'users' not in default:
+            msg = 'cowardly refusing to push to a non user repo'
             msg = '{0} - (please use hg.m.o/users/<repo> instead)'.format(msg)
             raise RepositoryError(msg)
         # casting to str because pylint wants it
@@ -178,15 +222,38 @@ class Repositories(object):
         conf = self.configuration
         repos = conf.options('repositories')
         for repo in repos:
+            am_i_brave = False
             log.info(repo)
             repo = Repository(conf, repo)
-            repo.delete_user_repo()
+            if repo.name in ('mozilla-aurora', 'mozilla-beta'):
+                # users release repos do not end with tracking bug number
+                am_i_brave = True
+            repo.delete_user_repo(i_am_brave=am_i_brave)
             repo.create_repo()
-            dst_dir = tempfile.mkdtemp()
-            repo.clone_locally(dst_dir, clone_from='user')
-            repo.tag()
-            repo.push()
-            shutil.rmtree(dst_dir)
+            if 'mozilla' not in repo.name:
+                # skip release repository
+                dst_dir = tempfile.mkdtemp()
+                repo.clone_locally(dst_dir, clone_from='user')
+                repo.tag()
+                repo.push()
+                shutil.rmtree(dst_dir)
+            else:
+                log.info('skip tagging of: {0}'.format(repo.name))
+        # locales
+        log.info('cloning locales repositiories')
+        locales_url = conf.get('locales', 'url')
+        try:
+            locales = get_shipped_locales(locales_url)
+        except NoLocalesError as error:
+            log.debug(error)
+            raise NoLocalesError(error)
+        log.info('creating locales repositories')
+        log.debug('locales: {0}'.format(locales))
+        for locale in locales:
+            log.info('repository: {0}'.format(locale))
+#            loc = LocaleRepository(locale)
+#            loc.delete()
+#            loc.create()
 
 
 def tag_name(version, products):
