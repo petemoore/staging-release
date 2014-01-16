@@ -43,30 +43,33 @@ class Patch(object):
         conf = self.configuration
         username = conf.get('common', 'username')
         bug = conf.get('common', 'tracking_bug')
-        repo_names = conf.options('repositories')
+        repo_names = conf.get_list('patch', 'replace')
         repos = patch_map(repo_names, username, bug)
         for repo in repos:
             # replace build/<repo> with users/... repo
             mozilla_repo, user_repo = repos[repo]
             for conf_in in files:
-                # in every file...
-                log.debug('patching: {0}'.format(conf_in))
-                out = []
-                with open(conf_in, 'r') as f_in:
-                    for line in f_in:
-                        if mozilla_repo in line and not 'raw-file' in line:
-                            log.debug(line)
-                            log.debug('{0} => {1}'.format(mozilla_repo,
-                                                          user_repo))
-                            line = line.replace(mozilla_repo, user_repo)
-                            log.debug(line)
-                        out.append(line)
+                # for every file...
+                self._update_file(conf_in, mozilla_repo, user_repo)
 
-                # write file before
-                log.debug('writing changes to: {0}'.format(conf_in))
-                with open(conf_in, 'w') as out_f:
-                    for line in out:
-                        out_f.write(line)
+    def _update_file(self, filename, src, dst):
+        log.debug('patching: {0}'.format(filename))
+        out = []
+        with open(filename, 'r') as f_in:
+            for line in f_in:
+                if src in line:
+                    if 'raw-file' not in line:
+                        log.debug(line)
+                        log.debug('{0} => {1}'.format(src, dst))
+                        line = line.replace(src, dst)
+                    log.debug(line)
+                out.append(line)
+
+        # write file before
+        log.debug('writing changes to: {0}'.format(filename))
+        with open(filename, 'w') as out_f:
+            for line in out:
+                out_f.write(line)
 
     def commit_changes(self):
         """executes hg commit on the local repository"""
@@ -139,6 +142,9 @@ class Patch(object):
 def patch_map(repository_names, username, tracking_bug):
     """Creates a map of the mozilla repo <-> user repo names"""
     my_map = {}
+    # find a better way...
+    # if a repository name in [repositories]
+    # is commented out, it will not be patched
     for repo in repository_names:
         my_map[repo] = ('build/{0}'.format(repo),
                         'users/{0}_mozilla.com/{1}-{2}'.format(username,
@@ -154,4 +160,6 @@ def patch_map(repository_names, username, tracking_bug):
     # increase the number of chunks
     my_map['number_of_chunks'] = ("releaseConfig['l10nChunks']          = 2",
                                   "releaseConfig['l10nChunks']          = 6")
+    my_map['mozilla-beta'] = ('users/stage-ffxbld/mozilla-beta',
+        'users/{0}_mozilla.com/mozilla-beta'.format(username))
     return my_map
