@@ -31,7 +31,7 @@ class Patch(object):
         log.debug('temporary directory: {0}'.format(self.dst_dir))
         repo = Repository(self.configuration, repository)
         log.info('cloning: {0}'.format(repository))
-        repo.clone_locally(self.dst_dir, clone_from='mozilla')
+        repo.clone_locally(self.dst_dir, clone_from='user')
         self.repository = repo
 
     def update_configs(self):
