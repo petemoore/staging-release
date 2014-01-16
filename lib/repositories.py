@@ -158,6 +158,7 @@ class Repository(object):
         hgrc = configparser.ConfigParser()
         hgrc.read(hg_rc)
         default = str(hgrc.get('paths', 'default'))
+        log.debug('default: {0}'.format(default))
         # DO NOT PUSH TO hg.m.o/build/<repo>
         if 'users' not in default:
             msg = 'cowardly refusing to push to a non user repo'
@@ -166,7 +167,8 @@ class Repository(object):
         # casting to str because pylint wants it
         # replace https or http with ssh
         default_push = default.replace('https:', 'ssh:')
-        default_push = default.replace('http:', 'ssh:')
+        default_push = default_push.replace('http:', 'ssh:')
+        log.debug('setting default-push to: {0}'.format(default_push))
         hgrc.set('paths', 'default-push', default_push)
         with open(hg_rc, 'wb') as configfile:
             hgrc.write(configfile)
@@ -185,9 +187,7 @@ class Repository(object):
             for line in hg(cmd, _cwd=self.local_checkout_dir):
                 log.debug(line.strip())
             # and now log the push command
-            lines = []
-            # hg('push', _cwd=self.local_checkout_dir)
-            for line in lines:
+            for line in hg('push', _cwd=self.local_checkout_dir):
                 log.debug(line.strip())
         except ErrorReturnCode as error:
             msg = 'push failed: {0}'.format(error)
@@ -251,9 +251,38 @@ class Repositories(object):
         log.debug('locales: {0}'.format(locales))
         for locale in locales:
             log.info('repository: {0}'.format(locale))
+             # make it optional from configuration/command line
 #            loc = LocaleRepository(locale)
 #            loc.delete()
 #            loc.create()
+
+    def delete_all_repos(self):
+        """runs delete, create, clone and tag on every repository"""
+        conf = self.configuration
+        repos = conf.options('repositories')
+        for repo in repos:
+            am_i_brave = False
+            log.info(repo)
+            repo = Repository(conf, repo)
+            if repo.name in ('mozilla-aurora', 'mozilla-beta'):
+                # users release repos do not end with tracking bug number
+                am_i_brave = True
+            repo.delete_user_repo(i_am_brave=am_i_brave)
+#        # locales
+#        log.info('cloning locales repositiories')
+#        locales_url = conf.get('locales', 'url')
+#        try:
+#            locales = get_shipped_locales(locales_url)
+#        except NoLocalesError as error:
+#            log.debug(error)
+#            raise NoLocalesError(error)
+#        log.info('creating locales repositories')
+#        log.debug('locales: {0}'.format(locales))
+#        for locale in locales:
+#            log.info('repository: {0}'.format(locale))
+#             # make it optional from configuration/command line
+#            loc = LocaleRepository(locale)
+#            loc.delete()
 
 
 def tag_name(version, products):
