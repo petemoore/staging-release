@@ -7,7 +7,10 @@ Please not that this module can be very dangerous
 """
 
 import os
-import sh
+from sh import ssh, hg
+from sh import ErrorReturnCode_1, ErrorReturnCode
+import shutil
+import tempfile
 
 from lib.logger import logger
 log = logger(__name__)
@@ -43,10 +46,10 @@ class Repository(object):
             msg = "{0}, its name does not end with {1}".format(msg, self.bug)
             log.error(msg)
             raise RepositoryError(msg)
-        cmd = ("hg.mozilla.org", "clone", dst_repo_name,  src_repo_name)
+        cmd = ('hg.mozilla.org', 'clone', dst_repo_name,  src_repo_name)
         log.info('cloning {0} to {1}'.format(src_repo_name, dst_repo_name))
         log.debug('running ssh {0}'.format(' '.join(cmd)))
-        sh.ssh(cmd)
+        ssh(cmd)
 
     def delete_user_repo(self):
         """delete user's remote repository"""
@@ -62,32 +65,31 @@ class Repository(object):
         log.debug('running ssh {0}'.format(' '.join(cmd)))
         output = []
         try:
-            for line in sh.ssh(cmd, _iter=True):
+            for line in ssh(cmd, _iter=True):
                 out = line.strip()
                 log.debug(out)
                 output.append(out)
-        except sh.ErrorReturnCode_1:
+        except ErrorReturnCode_1:
             log.debug('trying to delete a non existing repo... pass')
-            pass
-        except sh.ErrorReturnCode:
+        except ErrorReturnCode:
             msg = 'bad exit code executing {0}'.format(' '.join(cmd))
             log.error(msg)
             raise RepositoryError(msg)
 
-    def clone_locally(self, dst_dir, branch='default', clone_from='mozilla'):
+    def clone_locally(self, dst_dir, branch='default', clone_from='user'):
         """clones the repo into dst_dir"""
         conf = self.configuration
         repo = conf.get(self.name, 'mozilla_repo')
-        if repo != 'mozilla':
+        if clone_from != 'mozilla':
             repo = conf.get(self.name, 'user_repo')
         cmd = ('clone', repo, dst_dir)
         log.debug('running sh {0}'.format(' '.join(cmd)))
         self.local_checkout_dir = dst_dir
         hg_cmd = ('clone', '-b', branch, repo, dst_dir)
         try:
-            for line in sh.hg(hg_cmd, _iter=True):
+            for line in hg(hg_cmd, _iter=True):
                 log.debug(line.strip())
-        except sh.ErrorReturnCode as error:
+        except ErrorReturnCode as error:
             msg = 'clone failed'
             msg = '{0}: hg {1}'.format(msg, ' '.join(cmd))
             msg = '{0} - error: {1}'.format(msg, error)
@@ -95,48 +97,84 @@ class Repository(object):
             raise RepositoryError('clone failed')
 
     def commit(self, commit_message):
+        """commit local changes"""
         try:
             cmd = ('commit', '-m', commit_message)
-            for line in sh.hg(cmd, _cwd=self.local_checkout_dir):
+            for line in hg(cmd, _cwd=self.local_checkout_dir):
                 log.debug(line.strip())
-        except sh.ErrorReturnCode as error:
+        except ErrorReturnCode as error:
             msg = 'commit failed: {0}'.format(error)
             raise RepositoryError(msg)
 
     def _update_hgrc(self):
+        """adds defaut-push in .hgrc"""
         hg_rc = os.path.join(self.local_checkout_dir, '.hg', 'hgrc')
         import configparser
         hgrc = configparser.ConfigParser()
         hgrc.read(hg_rc)
-        default_push = hgrc.get('paths', 'default')
+        default = str(hgrc.get('paths', 'default'))
+        # DO NOT PUSH TO hg.m.o/build/<repo>
+        if 'hg.mozilla.com/build' in default or \
+           'hg.mozilla.org/build' in default:
+            msg = 'cowardly refusing to push to hg.m.o/build'
+            msg = '{0} - (please use hg.m.o/users/<repo> instead)'.format(msg)
+            raise RepositoryError(msg)
+        # casting to str because pylint wants it
         # replace https or http with ssh
-        default_push = default_push.replace('https:', 'ssh:')
-        default_push = default_push.replace('http:', 'ssh:')
+        default_push = default.replace('https:', 'ssh:')
+        default_push = default.replace('http:', 'ssh:')
         hgrc.set('paths', 'default-push', default_push)
         with open(hg_rc, 'wb') as configfile:
             hgrc.write(configfile)
 
+        # log .hg/hgrc content
+        with open(hg_rc, 'r') as configfile:
+            for line in configfile:
+                log.debug(line.strip())
+
     def push(self):
+        """pushes local changes to the remote repository"""
         self._update_hgrc()
         try:
             # logging what is about to be pushed
             cmd = ('out', '-p', '--color', 'never')
-            for line in sh.hg(cmd, _cwd=self.local_checkout_dir):
+            for line in hg(cmd, _cwd=self.local_checkout_dir):
                 log.debug(line.strip())
             # and now log the push command
-            for line in sh.hg('push', _cwd=self.local_checkout_dir):
+            lines = []
+            # hg('push', _cwd=self.local_checkout_dir)
+            for line in lines:
                 log.debug(line.strip())
-        except sh.ErrorReturnCode as error:
+        except ErrorReturnCode as error:
             msg = 'push failed: {0}'.format(error)
             log.debug(msg)
             raise RepositoryError(msg)
 
+    def tag(self, tag='default'):
+        """tags a repository with tag, if tag is not provided,
+           it will use tag_name function do determine the tag"""
+        conf = self.configuration
+        if tag == 'default':
+            products = conf.get_list('common', 'staging_release')
+            version = conf.get('common', 'version')
+            tag = tag_name(version, products)
+        try:
+            cmd = ('tag', '-f', tag)
+            for line in hg(cmd, _cwd=self.local_checkout_dir):
+                log.debug(line.strip())
+        except ErrorReturnCode as error:
+            msg = 'tag failed: {0}'.format(error)
+            log.debug(msg)
+            raise RepositoryError(msg)
 
-class Repositories(Exception):
+
+class Repositories(object):
+    """Manages repositories in configuration"""
     def __init__(self, configuration):
         self.configuration = configuration
 
     def prepare_user_repos(self):
+        """runs delete, create, clone and tag on every repository"""
         conf = self.configuration
         repos = conf.options('repositories')
         for repo in repos:
@@ -144,16 +182,30 @@ class Repositories(Exception):
             repo = Repository(conf, repo)
             repo.delete_user_repo()
             repo.create_repo()
+            dst_dir = tempfile.mkdtemp()
+            repo.clone_locally(dst_dir, clone_from='user')
+            repo.tag()
+            repo.push()
+            shutil.rmtree(dst_dir)
 
 
-def to_user_repo(self, repo_name, tracking_bug):
+def tag_name(version, products):
+    """returns the tag name"""
+    names = []
+    version = version.replace('.', '_')
+    for name in products:
+        names.append('{0}_{1}_RELEASE'.format(name.upper(), version))
+    return ', '.join(names)
+
+
+def to_user_repo(repo_name, tracking_bug):
     """transforms mozilla's (build) repository to user's repo
         e.g. tools => tools-9999
     """
     return '{0}-{1}'.format(repo_name, tracking_bug)
 
 
-def to_mozilla(self, repo_name, tracking_bug):
+def to_mozilla(repo_name, tracking_bug):
     """transforms user's repository name in mozilla repository names
         e.g. build/tools-9999 => tools
         e.g. h.m.o/build/tools-9999 => tools

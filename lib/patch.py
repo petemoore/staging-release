@@ -23,24 +23,28 @@ class Patch(object):
         self.repository = None
         self.tokens = configuration.get_list('patch', 'tokens')
         self.configuration = configuration
+        self.dst_dir = None
 
     def clone(self, repository):
+        """clone repository locally"""
         self._create_temp_dir()
         log.debug('temporary directory: {0}'.format(self.dst_dir))
         repo = Repository(self.configuration, repository)
         log.info('cloning: {0}'.format(repository))
-        repo.clone_locally(self.dst_dir)
+        repo.clone_locally(self.dst_dir, clone_from='mozilla')
         self.repository = repo
 
     def update_configs(self):
+        """
+        updates user repository to use just created repositories
+        (rather than official mozilla ones)
+        """
         files = self._files_to_update()
         conf = self.configuration
         username = conf.get('common', 'username')
         bug = conf.get('common', 'tracking_bug')
         repo_names = conf.options('repositories')
         repos = patch_map(repo_names, username, bug)
-        tokens = self.tokens
-        log.debug('tokens: {0}'.format(tokens))
         for repo in repos:
             # replace build/<repo> with users/... repo
             mozilla_repo, user_repo = repos[repo]
@@ -50,13 +54,12 @@ class Patch(object):
                 out = []
                 with open(conf_in, 'r') as f_in:
                     for line in f_in:
-                        for token in tokens:
-                            if mozilla_repo in line and not 'raw-file' in line:
-                                log.debug(line)
-                                log.debug('{0} => {1}'.format(mozilla_repo,
-                                                              user_repo))
-                                line = line.replace(mozilla_repo, user_repo)
-                                log.debug(line)
+                        if mozilla_repo in line and not 'raw-file' in line:
+                            log.debug(line)
+                            log.debug('{0} => {1}'.format(mozilla_repo,
+                                                          user_repo))
+                            line = line.replace(mozilla_repo, user_repo)
+                            log.debug(line)
                         out.append(line)
 
                 # write file before
@@ -66,32 +69,38 @@ class Patch(object):
                         out_f.write(line)
 
     def commit_changes(self):
+        """executes hg commit on the local repository"""
         conf = self.configuration
         commit_msg = conf.get('patch', 'commit_message')
         log.info('committing local changes')
         repo = self.repository
         repo.commit(commit_msg)
+        repo.tag(tag='default')
 
     def _create_temp_dir(self):
+        """creates a temporary directory"""
         self.dst_dir = tempfile.mkdtemp()
         log.debug('created temp dir: {0}'.format(self.dst_dir))
 
     def _delete_temp_dir(self):
+        """removes temp directory"""
         log.debug('deleting temp dir: {0}'.format(self.dst_dir))
         try:
             shutil.rmtree(self.dst_dir)
-        except Exception as error:
+        except OSError as error:
             # cannot delete temp dir
             log.debug('Patch: failed to delete temporary directory')
             log.debug(error)
 
     def push_changes(self):
+        """push changes to remote"""
         log.info('pushing changes to remote')
         repo = self.repository
         repo.push()
         self._delete_temp_dir()
 
     def _files_to_update(self):
+        """returns a list of files to update"""
         config = self.configuration
         files = self.release_type
         files.append('common_files')
@@ -109,13 +118,18 @@ class Patch(object):
         return set(staging_files)
 
     def _absoulute_path(self, filename):
+        """returns the absolute path from the dst_dir"""
         try:
             return os.path.join(self.dst_dir, filename)
         except TypeError as error:
             log.debug(error)
 
     def fix(self, repository):
+        """clones, updates, commit and pushes the your repo"""
         log.info('updating configuration for staging release')
+        import time
+        # sleep 20 sec
+        time.sleep(20)
         self.clone(repository)
         self.update_configs()
         self.commit_changes()

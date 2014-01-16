@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+#https://wiki.mozilla.org/Release:Release_Automation_on_Mercurial:Staging_Specific_Notes
 #https://wiki.mozilla.org/ReleaseEngineering/How_To/Setup_Personal_Development_Master#Create_a_build_master
 import os
 from lib.config import Config
@@ -16,6 +17,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--cfg', help='configuration file', required=True)
     parser.add_argument('-b', '--bug', help='bug tracking id', required=True)
+    parser.add_argument('-v', '--version', help='version', required=True)
     msg = 'staging release comma separated values (e.g: firefox,fennec)'
     parser.add_argument('-r', '--release', help=msg, required=True)
     msg = 'username: if not specified, whoami will be used'
