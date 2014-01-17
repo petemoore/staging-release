@@ -151,15 +151,14 @@ def patch_map(repository_names, username, tracking_bug):
                                                                repo,
                                                                tracking_bug))
     # replace stage-ffxbld -> username_mozilla.com
-    for element in ('tools', 'partner-repacks'):
-        name = '{0}-{1}'.format(element, tracking_bug)
-        my_map['stage-ffxbld'] = ('users/stage-ffxbld/{0}'.format(element),
-                                  'users/{0}_mozilla.com/{1}'.format(username,
-                                                                     name))
+    my_map['stage-ffxbld'] = ('users/stage-ffxbld',
+                              'users/{0}_mozilla.com'.format(username))
     # optimizations:
     # increase the number of chunks
     my_map['number_of_chunks'] = ("releaseConfig['l10nChunks']          = 2",
                                   "releaseConfig['l10nChunks']          = 6")
-    my_map['mozilla-beta'] = ('users/stage-ffxbld/mozilla-beta',
-        'users/{0}_mozilla.com/mozilla-beta'.format(username))
+    src = 'users/stage-ffxbld/mozilla-beta'
+    dst = 'users/{0}_mozilla.com/mozilla-beta'.format(username)
+    my_map['mozilla-beta'] = (src, dst)
+
     return my_map
