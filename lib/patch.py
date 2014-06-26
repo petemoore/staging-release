@@ -25,13 +25,14 @@ class Patch(object):
         self.configuration = configuration
         self.dst_dir = None
 
-    def clone(self, repository):
+    def clone(self, repository, branch):
         """clone repository locally"""
         self._create_temp_dir()
         log.debug('temporary directory: {0}'.format(self.dst_dir))
         repo = Repository(self.configuration, repository)
         log.info('cloning: {0}'.format(repository))
-        repo.clone_locally(self.dst_dir, clone_from='user')
+        # release runner reads from production branch and commits to default
+        repo.clone_locally(self.dst_dir, branch=branch, clone_from='user')
         self.repository = repo
 
     def update_configs(self):
@@ -133,10 +134,12 @@ class Patch(object):
         import time
         # sleep 20 sec
         time.sleep(20)
-        self.clone(repository)
-        self.update_configs()
-        self.commit_changes()
-        self.push_changes()
+        for branch in ('default', 'production'):
+            self.clone(repository, branch)
+            self.update_configs()
+            self.commit_changes()
+            self.push_changes()
+            time.sleep(20)
 
 
 def patch_map(repository_names, username, tracking_bug):
@@ -158,6 +161,10 @@ def patch_map(repository_names, username, tracking_bug):
     my_map['number_of_chunks'] = ("releaseConfig['l10nChunks']          = 2",
                                   "releaseConfig['l10nChunks']          = 6")
     src = 'users/stage-ffxbld/mozilla-beta'
+    dst = 'users/{0}_mozilla.com/mozilla-beta'.format(username)
+    my_map['mozilla-beta-stage'] = (src, dst)
+
+    src = 'releases/mozilla-beta'
     dst = 'users/{0}_mozilla.com/mozilla-beta'.format(username)
     my_map['mozilla-beta'] = (src, dst)
 
