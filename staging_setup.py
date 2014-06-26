@@ -2,6 +2,9 @@
 
 #https://wiki.mozilla.org/Release:Release_Automation_on_Mercurial:Staging_Specific_Notes
 #https://wiki.mozilla.org/ReleaseEngineering/How_To/Setup_Personal_Development_Master#Create_a_build_master
+
+# missing:
+# ln -s ../buildbot-configs/mozilla/universal_master_sqlite.cfg master.cfg
 import os
 from lib.config import Config
 from lib.master import Master, MasterError
