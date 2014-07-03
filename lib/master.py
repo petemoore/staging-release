@@ -28,8 +28,8 @@ class Master(object):
         self._prepare_dirs()
         log.info('installing buildbot master')
         self.virtualenv()
-        self.deps()
         self.install_buildbot()
+        self.deps()
         self.master()
         self.master_makefile()
 
