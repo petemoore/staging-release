@@ -119,13 +119,14 @@ class Master(object):
         req = conf.get_list('master', 'virtualenv_requirements')
         req = [line.strip() for line in req]
         venv = self.venv
+        if len(req) == 1:
+            req = req[0]
         venv.install_dependencies(req)
 
     def install_buildbot(self):
         """make intall-buildbot target"""
         self._clone_repositories()
         self._generate_master_json()
-        #$(VIRTUALENV_PYTHON) setup.py develop install
         conf = self.configuration
         args = conf.get_list('master', 'buildbot_install')
         args = [option.strip() for option in args]
@@ -147,7 +148,7 @@ class Master(object):
 
     def master_makefile(self):
         """make master-makefile"""
-        #ln -sf $(BASEDIR)/buildbot-configs/Makefile.master $(BASEDIR)/Makefile
+        # ln -sf $(BASEDIR)/buildbot-configs/Makefile.master $(BASEDIR)/Makefile
         conf = self.configuration
         src = conf.get('master', 'buildbot_configs_dir')
         src = os.path.join(src, 'Makefile.master')
