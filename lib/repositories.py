@@ -183,7 +183,7 @@ class Repository(object):
         self._update_hgrc()
         try:
             # logging what is about to be pushed
-            cmd = ('out', '-p', '--color', 'never')
+            cmd = ('out', '-p')
             for line in hg(cmd, _cwd=self.local_checkout_dir):
                 log.debug(line.strip())
             # and now log the push command
@@ -222,7 +222,7 @@ class Repositories(object):
         conf = self.configuration
         repos = conf.options('repositories')
         for repo in repos:
-            am_i_brave = False
+            am_i_brave = True
             log.info(repo)
             repo = Repository(conf, repo)
             if repo.name in ('mozilla-aurora', 'mozilla-beta'):
@@ -261,7 +261,7 @@ class Repositories(object):
         conf = self.configuration
         repos = conf.options('repositories')
         for repo in repos:
-            am_i_brave = False
+            am_i_brave = True
             log.info(repo)
             repo = Repository(conf, repo)
             if repo.name in ('mozilla-aurora', 'mozilla-beta'):
