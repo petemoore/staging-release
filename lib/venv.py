@@ -64,10 +64,11 @@ class Virtualenv(object):
             venv = subprocess.Popen(cmd, cwd=self.basedir,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.STDOUT)
-        except OSError:
+        except OSError as error:
             log.debug('Error executing:')
             log.debug('cmd: {0}'.format(' '.join(cmd)))
             log.debug('cwd: {0}'.format(self.basedir))
+            raise VirtualenvError(error)
 
         while True:
             log.debug(venv.stdout.readline().strip())
