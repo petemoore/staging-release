@@ -60,8 +60,15 @@ class Virtualenv(object):
 
         cmd = [self._executable()] + extra_args + [self.basedir]
         log.info('creating virtualenv')
-        venv = subprocess.Popen(cmd, cwd=self.basedir, stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT)
+        try:
+            venv = subprocess.Popen(cmd, cwd=self.basedir,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT)
+        except OSError:
+            log.debug('Error executing:')
+            log.debug('cmd: {0}'.format(' '.join(cmd)))
+            log.debug('cwd: {0}'.format(self.basedir))
+
         while True:
             log.debug(venv.stdout.readline().strip())
             if venv.poll() is not None:
